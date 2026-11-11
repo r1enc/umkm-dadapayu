@@ -204,8 +204,6 @@ const categories = await fetchCategories();
 
   <!-- Script Interaksi Tabel & Hapus Client -->
   <script>
-    import { getClientAuth } from '../../../lib/firebase/client';
-
     const searchInput = document.getElementById('admin-search-input') as HTMLInputElement | null;
     const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-status-btn');
     const rows = document.querySelectorAll<HTMLElement>('.umkm-row');
@@ -259,24 +257,12 @@ const categories = await fetchCategories();
     if (modalConfirm) {
       modalConfirm.addEventListener('click', async () => {
         if (!selectedDeleteId) return;
-        const auth = getClientAuth();
-        const user = auth.currentUser;
-        if (!user) {
-          alert('Sesi admin berakhir. Silakan login kembali.');
-          window.location.href = '/admin/login';
-          return;
-        }
-
         modalConfirm.textContent = 'Menghapus...';
-        const token = await user.getIdToken();
 
         try {
           const res = await fetch('/api/admin/umkm', {
             method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: selectedDeleteId }),
           });
 

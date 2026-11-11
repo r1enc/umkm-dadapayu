@@ -1,5 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
-import { verifyAdminRequest } from './lib/firebase/verifyAdmin';
+import { verifyAdminSession } from './lib/firebase/verifyAdmin';
 
 const SESSION_COOKIE = '__Host-admin_session';
 
@@ -9,7 +9,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const env = (context.locals as { runtime?: { env?: Record<string, string> } })?.runtime?.env || {};
-  const admin = await verifyAdminRequest(context.request, env);
+  const admin = await verifyAdminSession(context.request, env);
   if (!admin.verified) {
     const response = context.redirect('/admin/login', 302);
     response.headers.set('Cache-Control', 'no-store');

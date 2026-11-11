@@ -342,8 +342,6 @@ const categories = await fetchCategories();
 
   <!-- Script Penanganan Form, Cloudinary Upload, dan Simpan ke API -->
   <script>
-    import { getClientAuth } from '../../../lib/firebase/client';
-
     const form = document.getElementById('umkm-form') as HTMLFormElement;
     const nameInput = document.getElementById('name') as HTMLInputElement;
     const slugInput = document.getElementById('slug') as HTMLInputElement;
@@ -384,19 +382,10 @@ const categories = await fetchCategories();
         btnUploadCover.setAttribute('disabled', 'true');
 
         try {
-          const auth = getClientAuth();
-          const user = auth.currentUser;
-          if (!user) throw new Error('Silakan login terlebih dahulu.');
-
-          const token = await user.getIdToken();
-
           // 1. Dapatkan signature terenkripsi dari serverless endpoint
           const signRes = await fetch('/api/cloudinary/sign', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ folder: 'umkm-dadapayu' }),
           });
 
@@ -508,17 +497,9 @@ const categories = await fetchCategories();
         btnUploadGallery.setAttribute('disabled', 'true');
 
         try {
-          const auth = getClientAuth();
-          const user = auth.currentUser;
-          if (!user) throw new Error('Silakan login terlebih dahulu.');
-          const token = await user.getIdToken();
-
           const signRes = await fetch('/api/cloudinary/sign', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ folder: 'umkm-dadapayu' }),
           });
           const signData = await signRes.json();
@@ -607,14 +588,6 @@ const categories = await fetchCategories();
         if (submitSpinner) submitSpinner.classList.remove('hidden');
 
         try {
-          const auth = getClientAuth();
-          const user = auth.currentUser;
-          if (!user) {
-            throw new Error('Sesi autentikasi telah berakhir. Silakan login kembali.');
-          }
-
-          const token = await user.getIdToken();
-
           // Kumpulkan produk dari form
           const productRows = document.querySelectorAll<HTMLElement>('.product-row');
           const products = Array.from(productRows).map((row) => {
@@ -657,10 +630,7 @@ const categories = await fetchCategories();
 
           const res = await fetch('/api/admin/umkm', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
 

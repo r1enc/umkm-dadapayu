@@ -7,6 +7,7 @@ interface Props {
 }
 
 const { title, activeNav = 'dashboard' } = Astro.props;
+const adminEmail = Astro.locals.admin?.email || 'Administrator';
 
 // Cegah caching halaman admin agar selalu mendapatkan status terbaru
 Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -57,7 +58,7 @@ Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate
           </a>
 
           <div id="admin-user-info" class="hidden md:flex flex-col text-right">
-            <span id="admin-email-display" class="text-xs font-semibold text-white">Memuat...</span>
+            <span id="admin-email-display" class="text-xs font-semibold text-white">{adminEmail}</span>
             <span class="text-[10px] text-village-300">Administrator</span>
           </div>
 
@@ -143,43 +144,8 @@ Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate
 
     <!-- Script Pengaman Autentikasi Admin Klien -->
     <script>
-      import { getClientAuth, logoutAdmin } from '../lib/firebase/client';
-      import { onAuthStateChanged } from 'firebase/auth';
-
-      const auth = getClientAuth();
-      const emailDisplay = document.getElementById('admin-email-display');
+      import { logoutAdmin } from '../lib/firebase/client';
       const logoutBtn = document.getElementById('admin-logout-btn');
-
-      let guardRun = 0;
-
-      // Pulihkan sesi dan verifikasi admin melalui endpoint server yang sama dengan login.
-      onAuthStateChanged(auth, async (user) => {
-        const currentRun = ++guardRun;
-        if (!user) {
-          window.location.href = '/admin/login';
-          return;
-        }
-
-        try {
-          const idToken = await user.getIdToken();
-          const response = await fetch('/api/admin/verify', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${idToken}` },
-          });
-          if (!response.ok) throw new Error('Sesi tidak memiliki akses admin yang valid.');
-          if (currentRun !== guardRun) return;
-          if (emailDisplay) emailDisplay.textContent = user.email || 'Admin Desa';
-        } catch (error) {
-          console.warn('[AdminGuard] Verifikasi sesi ditolak', {
-            uid: user.uid,
-            reason: error instanceof Error ? error.message : 'verification-failed',
-          });
-          if (currentRun === guardRun) {
-            await logoutAdmin();
-            window.location.href = '/admin/login';
-          }
-        }
-      });
 
       if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {

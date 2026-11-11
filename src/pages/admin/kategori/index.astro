@@ -239,8 +239,6 @@ categories.forEach((cat) => {
 
   <!-- Script Penanganan Kategori Client -->
   <script>
-    import { getClientAuth } from '../../../lib/firebase/client';
-
     const btnOpenAdd = document.getElementById('btn-open-add-cat-modal');
     const modal = document.getElementById('cat-modal');
     const modalTitle = document.getElementById('cat-modal-title');
@@ -299,15 +297,6 @@ categories.forEach((cat) => {
     if (modalForm) {
       modalForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const auth = getClientAuth();
-        const user = auth.currentUser;
-        if (!user) {
-          alert('Silakan login kembali.');
-          window.location.href = '/admin/login';
-          return;
-        }
-
-        const token = await user.getIdToken();
         const isEdit = !!modalId.value;
         const endpoint = '/api/admin/categories';
         const method = isEdit ? 'PUT' : 'POST';
@@ -323,10 +312,7 @@ categories.forEach((cat) => {
         try {
           const res = await fetch(endpoint, {
             method,
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
 
@@ -379,20 +365,13 @@ categories.forEach((cat) => {
     if (deleteConfirm) {
       deleteConfirm.addEventListener('click', async () => {
         if (!selectedCatId) return;
-        const auth = getClientAuth();
-        const user = auth.currentUser;
-        if (!user) return;
 
         deleteConfirm.textContent = 'Menghapus...';
-        const token = await user.getIdToken();
 
         try {
           const res = await fetch('/api/admin/categories', {
             method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: selectedCatId }),
           });
 

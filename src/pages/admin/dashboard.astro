@@ -103,18 +103,18 @@ const totalAll = allUMKM.length;
 
     </div>
 
-    <!-- Daftar UMKM Terbaru -->
+    <!-- Daftar UMKM -->
     <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden space-y-4 p-6 sm:p-8">
       <div class="flex items-center justify-between pb-4 border-b border-gray-100">
         <div>
-          <h2 class="text-lg font-bold text-gray-900">Daftar Usaha Terbaru</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Kelola informasi atau ubah status publikasi.</p>
+          <h2 class="text-lg font-bold text-gray-900">Semua Usaha ({totalAll})</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Kelola informasi, kategori, atau status publikasi.</p>
         </div>
         <a
           href="/admin/umkm"
           class="text-xs font-bold text-village-700 hover:text-village-900 flex items-center gap-1"
         >
-          <span>Buka Semua ({totalAll})</span>
+          <span>Kelola UMKM</span>
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
@@ -133,7 +133,7 @@ const totalAll = allUMKM.length;
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              {allUMKM.slice(0, 5).map((umkm) => {
+              {allUMKM.map((umkm) => {
                 const cat = categories.find((c) => c.id === umkm.categoryId);
                 return (
                   <tr class="hover:bg-gray-50/70 transition">

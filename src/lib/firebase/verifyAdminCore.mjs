@@ -4,7 +4,11 @@ const failure = (status, code, error) => ({ verified: false, status, code, error
 export async function verifyAdminRequestCore(request, { projectId, apiKey, fetchImpl = fetch }) {
   const authHeader = request.headers.get('Authorization') || '';
   const cookieToken = request.headers.get('Cookie')?.split(';').map((part) => part.trim()).find((part) => part.startsWith('__Host-admin_session='))?.slice('__Host-admin_session='.length);
-  const match = cookieToken ? [cookieToken, cookieToken] : /^Bearer\s+(.+)$/i.exec(authHeader);
+  // Credentialed API requests must use the freshly supplied ID token even if
+  // the browser also sends an older session cookie. Page middleware calls
+  // verifyAdminSession(), which removes Authorization and therefore remains
+  // cookie-only.
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader) || (cookieToken ? [cookieToken, cookieToken] : null);
   if (!match) return failure(401, 'missing-token', 'Token autentikasi tidak ditemukan.');
   const idToken = match[1].trim();
   if (!idToken) return failure(401, 'missing-token', 'Token autentikasi tidak ditemukan.');

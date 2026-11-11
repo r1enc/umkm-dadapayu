@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { verifyAdminRequest } from '../../../lib/firebase/verifyAdmin';
+import { verifyAdminSession } from '../../../lib/firebase/verifyAdmin';
 
 async function sha1(str: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as { runtime?: { env?: Record<string, string> } })?.runtime?.env || {};
 
   // 1. Verifikasi Admin
-  const adminCheck = await verifyAdminRequest(request, env);
+  const adminCheck = await verifyAdminSession(request, env);
   if (!adminCheck.verified) {
     return new Response(
       JSON.stringify({ error: 'Otorisasi ditolak.', details: adminCheck.error }),

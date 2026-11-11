@@ -4,7 +4,6 @@ import { fetchCategories } from '../../../../lib/services/categoryService';
 import { firestoreData, firestoreGet } from '../../../../lib/firebase/firestoreRest';
 import { verifyAdminSession } from '../../../../lib/firebase/verifyAdmin';
 import { getDemoUMKM } from '../../../../lib/dev/demoStore';
-import { mockUMKMList } from '../../../../data/mockData';
 import type { UMKM } from '../../../../types';
 
 const { id } = Astro.params;
@@ -34,12 +33,6 @@ try {
   }
 } catch (e) {
   console.error('Error fetching UMKM by ID:', e);
-}
-
-// Fallback jika di development mode
-if (!umkmData && import.meta.env.DEV) {
-  const found = mockUMKMList.find((u) => u.id === id || u.slug === id);
-  if (found) umkmData = found;
 }
 
 if (!umkmData) {
@@ -391,8 +384,6 @@ if (!umkmData) {
 
   <!-- Script Penanganan Update Client -->
   <script>
-    import { getClientAuth } from '../../../../lib/firebase/client';
-
     const form = document.getElementById('edit-umkm-form') as HTMLFormElement;
     const umkmId = form?.dataset.id;
     const nameInput = document.getElementById('name') as HTMLInputElement;
@@ -420,18 +411,9 @@ if (!umkmData) {
         btnUploadCover.setAttribute('disabled', 'true');
 
         try {
-          const auth = getClientAuth();
-          const user = auth.currentUser;
-          if (!user) throw new Error('Silakan login terlebih dahulu.');
-
-          const token = await user.getIdToken();
-
           const signRes = await fetch('/api/cloudinary/sign', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ folder: 'umkm-dadapayu' }),
           });
 
@@ -509,17 +491,9 @@ if (!umkmData) {
         btnUploadGallery.setAttribute('disabled', 'true');
 
         try {
-          const auth = getClientAuth();
-          const user = auth.currentUser;
-          if (!user) throw new Error('Silakan login terlebih dahulu.');
-          const token = await user.getIdToken();
-
           const signRes = await fetch('/api/cloudinary/sign', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ folder: 'umkm-dadapayu' }),
           });
           const signData = await signRes.json();
@@ -609,11 +583,6 @@ if (!umkmData) {
         if (submitSpinner) submitSpinner.classList.remove('hidden');
 
         try {
-          const auth = getClientAuth();
-          const user = auth.currentUser;
-          if (!user) throw new Error('Sesi telah berakhir. Silakan login kembali.');
-          const token = await user.getIdToken();
-
           const productRows = document.querySelectorAll<HTMLElement>('.product-row');
           const products = Array.from(productRows).map((row) => {
             const pName = (row.querySelector('.prod-name') as HTMLInputElement)?.value || '';
@@ -652,10 +621,7 @@ if (!umkmData) {
 
           const res = await fetch('/api/admin/umkm', {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
 

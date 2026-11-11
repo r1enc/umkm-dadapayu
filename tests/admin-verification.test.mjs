@@ -48,10 +48,10 @@ test('accepts the HttpOnly session cookie for server-side page verification', as
   assert.equal(calls[1].init.headers.Authorization, `Bearer ${idToken}`);
 });
 
-test('session cookie takes precedence over a conflicting Authorization header', async () => {
+test('a fresh Authorization token takes precedence over a stale session cookie', async () => {
   const calls = [];
   const sessionRequest = new Request('https://app.test/admin/dashboard', {
-    headers: { Cookie: `__Host-admin_session=${idToken}`, Authorization: 'Bearer attacker-token' },
+    headers: { Cookie: `__Host-admin_session=${idToken}`, Authorization: 'Bearer fresh-id-token' },
   });
   const result = await verifyAdminRequestCore(sessionRequest, {
     projectId, apiKey: 'test-api-key',
@@ -63,7 +63,7 @@ test('session cookie takes precedence over a conflicting Authorization header', 
     },
   });
   assert.equal(result.verified, true);
-  assert.equal(JSON.parse(calls[0].init.body).idToken, idToken);
+  assert.equal(JSON.parse(calls[0].init.body).idToken, 'fresh-id-token');
 });
 
 test('rejects requests without a session token before contacting Firebase', async () => {

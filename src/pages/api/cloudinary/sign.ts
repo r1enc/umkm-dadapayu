@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { verifyAdminRequest } from '../../../lib/firebase/verifyAdmin';
+import { verifyAdminSession } from '../../../lib/firebase/verifyAdmin';
 
 // Helper Web Crypto API untuk membuat SHA-1 signature (Kompatibel 100% dengan Cloudflare Workers)
 async function sha1(str: string): Promise<string> {
@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as { runtime?: { env?: Record<string, string> } })?.runtime?.env || {};
 
   // 1. Verifikasi Kriptografis Token Firebase dan Hak Akses Admin
-  const adminCheck = await verifyAdminRequest(request, env);
+  const adminCheck = await verifyAdminSession(request, env);
   if (!adminCheck.verified) {
     return new Response(
       JSON.stringify({
