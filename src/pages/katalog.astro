@@ -1,0 +1,233 @@
+---
+import Layout from '../layouts/Layout.astro';
+import UMKMCard from '../components/UMKMCard.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+import EmptyState from '../components/EmptyState.astro';
+import { fetchCategories } from '../lib/services/categoryService';
+import { searchUMKMService, fetchPublishedUMKM } from '../lib/services/umkmService';
+
+// Query parameters from URL (Server-Side)
+const searchParams = Astro.url.searchParams;
+const queryParam = searchParams.get('q') || '';
+const categoryParam = searchParams.get('kategori') || 'semua';
+
+const categories = await fetchCategories();
+const allPublished = await fetchPublishedUMKM();
+const totalAll = allPublished.length;
+
+const { items: filteredUMKM, total, category: activeCategory } = await searchUMKMService({
+  query: queryParam,
+  categorySlug: categoryParam,
+});
+
+// Cache control: edge caching with stale-while-revalidate
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
+);
+
+const breadcrumbItems = [
+  { name: 'Katalog UMKM', url: '/katalog' },
+  ...(activeCategory ? [{ name: activeCategory.name }] : []),
+];
+
+const pageTitle = activeCategory
+  ? `Katalog UMKM: ${activeCategory.name} - Desa Dadapayu`
+  : queryParam
+  ? `Hasil Pencarian "${queryParam}" - Katalog UMKM Dadapayu`
+  : 'Katalog Lengkap UMKM Desa Dadapayu, Semanu';
+---
+
+<Layout
+  title={pageTitle}
+  description="Daftar lengkap usaha mikro, kecil, dan menengah di Kalurahan Dadapayu. Cari produk kuliner, kerajinan, dan hasil bumi unggulan warga."
+>
+  <div class="bg-gray-50 border-b border-gray-200">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+      <Breadcrumb items={breadcrumbItems} />
+      <div class="pt-2 pb-6">
+        <h1 class="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+          Katalog UMKM Desa Dadapayu
+        </h1>
+        <p class="mt-2 text-sm sm:text-base text-gray-600 max-w-3xl">
+          Jelajahi seluruh potensi usaha warga desa. Hubungi langsung kontak pemilik untuk konsultasi atau pemesanan produk tanpa perantara.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <section class="py-8 sm:py-12 bg-white">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <!-- Bar Pencarian & Filter Kategori -->
+      <div class="space-y-6 pb-8 border-b border-gray-100">
+        <!-- Form Search Utama -->
+        <form id="catalog-search-form" action="/katalog" method="GET" class="flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-1">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              id="search-input"
+              type="text"
+              name="q"
+              value={queryParam}
+              placeholder="Cari nama UMKM atau jenis produk (contoh: Gatot, Besek, Madu, Singkong)..."
+              class="w-full rounded-xl border border-gray-300 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 shadow-xs focus:border-village-600 focus:outline-none focus:ring-1 focus:ring-village-600"
+            />
+            {queryParam && (
+              <a
+                href={`/katalog${categoryParam !== 'semua' ? `?kategori=${categoryParam}` : ''}`}
+                class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs text-gray-400 hover:text-gray-600"
+                title="Hapus pencarian kata kunci"
+              >
+                ✕ Hapus
+              </a>
+            )}
+          </div>
+
+          <!-- Hidden Input untuk menjaga kategori terpilih saat submit text search -->
+          <input type="hidden" name="kategori" value={categoryParam} />
+
+          <button
+            type="submit"
+            class="rounded-xl bg-village-700 px-6 py-3 text-sm font-semibold text-white shadow-xs hover:bg-village-800 transition flex items-center justify-center gap-2"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <span>Cari</span>
+          </button>
+        </form>
+
+        <!-- Filter Tab Kategori (Pill Buttons) -->
+        <div>
+          <div class="flex items-center justify-between pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Filter Kategori:</span>
+            {(queryParam || categoryParam !== 'semua') && (
+              <a href="/katalog" class="text-xs font-semibold text-village-700 hover:underline">
+                Reset Semua Filter
+              </a>
+            )}
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <a
+              href={`/katalog${queryParam ? `?q=${encodeURIComponent(queryParam)}` : ''}`}
+              class:list={[
+                'rounded-xl px-4 py-2 text-xs sm:text-sm font-medium transition-colors',
+                categoryParam === 'semua'
+                  ? 'bg-village-700 text-white shadow-xs'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+              ]}
+            >
+              Semua Kategori ({totalAll})
+            </a>
+            {categories.map((cat) => {
+              const isActive = categoryParam === cat.slug;
+              const linkUrl = `/katalog?kategori=${cat.slug}${queryParam ? `&q=${encodeURIComponent(queryParam)}` : ''}`;
+              return (
+                <a
+                  href={linkUrl}
+                  class:list={[
+                    'rounded-xl px-4 py-2 text-xs sm:text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-village-700 text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                  ]}
+                >
+                  {cat.name}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <!-- Ringkasan Hasil -->
+      <div class="flex items-center justify-between py-6">
+        <p id="results-count" class="text-xs sm:text-sm text-gray-600 font-medium">
+          Menampilkan <span class="font-bold text-gray-900">{total}</span> UMKM
+          {activeCategory && <span> dalam kategori <span class="font-bold text-village-800">"{activeCategory.name}"</span></span>}
+          {queryParam && <span> dengan kata kunci <span class="font-bold text-village-800">"{queryParam}"</span></span>}
+        </p>
+      </div>
+
+      <!-- Grid Daftar UMKM -->
+      {filteredUMKM.length > 0 ? (
+        <div id="umkm-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          {filteredUMKM.map((umkm) => (
+            <div
+              class="umkm-card-item"
+              data-name={umkm.name.toLowerCase()}
+              data-desc={umkm.shortDescription.toLowerCase()}
+              data-category={umkm.categoryId}
+              data-products={umkm.products.map((p) => p.name.toLowerCase()).join(' ')}
+            >
+              <UMKMCard umkm={umkm} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="Tidak Ada UMKM yang Sesuai"
+          message={`Pencarian "${queryParam || activeCategory?.name}" tidak menemukan hasil. Silakan periksa ejaan kata atau reset filter kategori.`}
+          resetUrl="/katalog"
+          resetLabel="Lihat Seluruh UMKM Dadapayu"
+        />
+      )}
+
+      <!-- Kontainer Empty State untuk filter instan client-side -->
+      <div id="client-empty-state" class="hidden">
+        <EmptyState
+          title="Pencarian Tidak Ditemukan"
+          message="Tidak ada UMKM atau produk yang cocok dengan kata kunci yang Anda ketikkan."
+          resetUrl="/katalog"
+          resetLabel="Reset Pencarian"
+        />
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<!-- Progressive Client-side Instant Filter Enhancement (Zero heavy framework) -->
+<script>
+  const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+  const cards = document.querySelectorAll<HTMLElement>('.umkm-card-item');
+  const countEl = document.getElementById('results-count');
+  const clientEmptyEl = document.getElementById('client-empty-state');
+  const gridEl = document.getElementById('umkm-grid');
+
+  if (searchInput && cards.length > 0) {
+    searchInput.addEventListener('input', () => {
+      const term = searchInput.value.toLowerCase().trim();
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        const name = card.dataset.name || '';
+        const desc = card.dataset.desc || '';
+        const products = card.dataset.products || '';
+        const matches = name.includes(term) || desc.includes(term) || products.includes(term);
+
+        if (matches) {
+          card.style.display = '';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      if (countEl) {
+        countEl.innerHTML = `Menampilkan <span class="font-bold text-gray-900">${visibleCount}</span> UMKM`;
+      }
+
+      if (visibleCount === 0) {
+        if (clientEmptyEl) clientEmptyEl.classList.remove('hidden');
+        if (gridEl) gridEl.classList.add('hidden');
+      } else {
+        if (clientEmptyEl) clientEmptyEl.classList.add('hidden');
+        if (gridEl) gridEl.classList.remove('hidden');
+      }
+    });
+  }
+</script>

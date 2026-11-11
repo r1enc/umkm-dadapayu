@@ -1,0 +1,29 @@
+{
+  "name": "umkm-dadapayu",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-umkm-dadapayu-test \"node --test tests/security-rules.test.mjs\"",
+    "test:admin-verification": "node tests/admin-verification.test.mjs",
+    "test:firestore-rest": "node --test tests/firestore-rest.test.mjs",
+    "test:demo-store": "node --test tests/demo-store.test.mjs"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.13",
+    "astro": "^5.4.2",
+    "firebase": "^11.10.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@tailwindcss/vite": "^4.0.9",
+    "firebase-tools": "^15.35.0",
+    "tailwindcss": "^4.0.9",
+    "typescript": "^5.7.3"
+  }
+}

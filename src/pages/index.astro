@@ -1,0 +1,220 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CategoryCard from '../components/CategoryCard.astro';
+import UMKMCard from '../components/UMKMCard.astro';
+import { fetchCategories } from '../lib/services/categoryService';
+import { fetchFeaturedUMKM, fetchPublishedUMKM } from '../lib/services/umkmService';
+
+const categories = await fetchCategories();
+const featuredUMKM = await fetchFeaturedUMKM(6);
+const allPublished = await fetchPublishedUMKM();
+const totalUMKM = allPublished.length;
+
+// Header cache untuk performa maksimal di Edge
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
+);
+---
+
+<Layout
+  title="Katalog Digital UMKM Desa Dadapayu, Semanu, Gunungkidul"
+  description="Jelajahi dan dukung ragam produk unggulan, olahan kuliner tradisional, kerajinan tangan, dan hasil bumi asli warga Kalurahan Dadapayu."
+>
+  <!-- Hero Section -->
+  <section class="relative overflow-hidden bg-gradient-to-b from-village-50 via-white to-gray-50 pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-gray-100">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <!-- Kolom Teks -->
+        <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+          <div class="inline-flex items-center gap-2 rounded-full bg-village-100/90 px-3.5 py-1.5 text-xs font-semibold text-village-800">
+            <span class="inline-block h-2 w-2 rounded-full bg-village-600 animate-pulse"></span>
+            Katalog Resmi Potensi Usaha Kalurahan Dadapayu
+          </div>
+
+          <h1 class="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl sm:leading-tight">
+            Etalase Digital <span class="text-village-700">UMKM Lokal</span> Desa Dadapayu
+          </h1>
+
+          <p class="text-base sm:text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+            Dari kuliner tiwul legendaris, anyaman bambu, madu klanceng hutan karst, hingga kerajinan kayu jati. Hubungi langsung para pengrajin dan pemilik usaha tanpa perantara.
+          </p>
+
+          <!-- Form Pencarian Cepat -->
+          <div class="pt-2 max-w-xl mx-auto lg:mx-0">
+            <form action="/katalog" method="GET" class="flex flex-col sm:flex-row items-stretch rounded-2xl bg-white p-2 shadow-lg ring-1 ring-black/5 gap-2">
+              <div class="flex items-center flex-1 px-3">
+                <svg class="h-5 w-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  name="q"
+                  placeholder="Cari UMKM atau produk (contoh: Tiwul, Bambu, Madu...)"
+                  class="w-full bg-transparent px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                class="rounded-xl bg-village-700 px-6 py-3 text-sm font-semibold text-white shadow-xs hover:bg-village-800 transition flex items-center justify-center gap-2"
+              >
+                <span>Temukan Produk</span>
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </form>
+            <div class="mt-2.5 flex items-center gap-2 text-xs text-gray-500 justify-center lg:justify-start">
+              <span>Paling sering dicari:</span>
+              <a href="/katalog?q=Tiwul" class="underline hover:text-village-700">Tiwul</a>
+              <span>•</span>
+              <a href="/katalog?q=Bambu" class="underline hover:text-village-700">Anyaman Bambu</a>
+              <span>•</span>
+              <a href="/katalog?q=Madu" class="underline hover:text-village-700">Madu Klanceng</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kolom Visual Potensi Desa -->
+        <div class="lg:col-span-5 relative">
+          <div class="relative mx-auto max-w-md lg:max-w-none">
+            <div class="overflow-hidden rounded-3xl bg-gray-100 shadow-xl border-4 border-white aspect-4/3 sm:aspect-square">
+              <img
+                src="https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=1000&q=80"
+                alt="Produk olahan pangan tradisional Dadapayu"
+                class="h-full w-full object-cover"
+                loading="eager"
+              />
+            </div>
+            <!-- Floating Badge Ringkasan -->
+            <div class="absolute -bottom-6 -left-4 sm:left-4 rounded-2xl bg-white p-4 shadow-lg border border-gray-100 flex items-center gap-3">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100 text-primary-700">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-xl font-bold text-gray-900">{totalUMKM}+ Unit Usaha</p>
+                <p class="text-xs text-gray-500">Terdaftar & Aktif Berproduksi</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Kategori Usaha Section -->
+  <section class="py-14 bg-white border-b border-gray-100">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-village-700">Jelajahi Berdasarkan Sektor</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">Kategori Usaha Warga</h2>
+        </div>
+        <a href="/kategori" class="inline-flex items-center gap-1 text-sm font-semibold text-village-700 hover:text-village-900 transition">
+          <span>Lihat Semua Kategori</span>
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {categories.map((cat) => (
+          <CategoryCard category={cat} />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- UMKM Unggulan Section -->
+  <section class="py-16 bg-gray-50">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-primary-600">Pilihan Produk Lokal</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">UMKM Unggulan Dadapayu</h2>
+          <p class="text-xs sm:text-sm text-gray-600 mt-1">Karya dan olahan pilihan yang menjadi ikon kebanggaan desa.</p>
+        </div>
+        <a
+          href="/katalog"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-village-700 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-village-800 transition"
+        >
+          <span>Buka Semua Katalog ({totalUMKM})</span>
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {featuredUMKM.map((umkm) => (
+          <UMKMCard umkm={umkm} />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Sekilas Tentang Potensi Kalurahan Dadapayu -->
+  <section class="py-16 bg-white border-t border-gray-100">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <div class="lg:col-span-5">
+          <div class="aspect-4/3 rounded-3xl overflow-hidden shadow-lg border border-gray-100 bg-gray-50">
+            <img
+              src="https://images.unsplash.com/photo-1590736969955-71cc94801759?auto=format&fit=crop&w=1000&q=80"
+              alt="Anyaman bambu khas pedesaan Dadapayu"
+              loading="lazy"
+              class="h-full w-full object-cover"
+            />
+          </div>
+        </div>
+        <div class="lg:col-span-7 space-y-4">
+          <span class="text-xs font-bold uppercase tracking-wider text-village-700">Potensi Desa</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
+            Kekayaan Alam & Kearifan Lokal Kalurahan Dadapayu
+          </h2>
+          <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
+            Kalurahan Dadapayu terletak di Kapanewon Semanu, Kabupaten Gunungkidul. Memiliki bentang alam perbukitan karst yang subur untuk tanaman singkong, ketela pohon, pohon jati, serta rumpun bambu tali.
+          </p>
+          <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
+            Masyarakat Dadapayu mengolah kekayaan ini menjadi produk bernilai tinggi: tiwul manis yang legit, gaplek kering pilihan, anyaman besek bambu hantaran, peralatan makan kayu jati, hingga budidaya madu murni lebah klanceng.
+          </p>
+
+          <div class="pt-2 flex flex-wrap gap-4">
+            <a
+              href="/tentang"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+            >
+              <span>Pelajari Profil Desa</span>
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Hubungi Desa / Pendaftaran UMKM -->
+  <section class="py-14 bg-village-800 text-white">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center space-y-4">
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+        Memiliki Usaha atau Produk di Desa Dadapayu?
+      </h2>
+      <p class="text-sm sm:text-base text-village-100 max-w-2xl mx-auto leading-relaxed">
+        Pendaftaran katalog ini difasilitasi oleh perangkat kalurahan secara gratis. Hubungi kantor Kalurahan Dadapayu untuk menambahkan data usaha Anda ke portal promosi ini.
+      </p>
+      <div class="pt-2 flex justify-center">
+        <a
+          href="/tentang"
+          class="rounded-xl bg-white px-6 py-3 text-xs sm:text-sm font-bold text-village-900 shadow-md hover:bg-village-50 transition"
+        >
+          Informasi Kontak Pengelola Kalurahan
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

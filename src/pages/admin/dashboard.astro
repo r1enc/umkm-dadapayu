@@ -1,0 +1,203 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { fetchAdminUMKM } from '../../lib/services/umkmService';
+import { fetchCategories } from '../../lib/services/categoryService';
+
+// SSR data fetch awal
+const allUMKM = await fetchAdminUMKM(Astro.request);
+const categories = await fetchCategories();
+
+// Hitung metrik
+const totalPublished = allUMKM.filter((u) => u.status === 'published').length;
+const totalDraft = allUMKM.filter((u) => u.status === 'draft').length;
+const totalHidden = allUMKM.filter((u) => u.status === 'hidden').length;
+const totalAll = allUMKM.length;
+---
+
+<AdminLayout title="Ringkasan Usaha Desa" activeNav="dashboard">
+  <div class="space-y-8">
+    
+    <!-- Header Dashboard & Tombol Aksi Cepat -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+          Ringkasan Katalog UMKM
+        </h1>
+        <p class="text-xs sm:text-sm text-gray-600 mt-1">
+          Pantau status publikasi usaha warga Kalurahan Dadapayu dalam satu tampilan sederhana.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a
+          href="/admin/umkm/tambah"
+          class="inline-flex items-center gap-2 bg-village-700 hover:bg-village-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Tambah UMKM Baru</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 4 Kartu Statistik Sederhana (Tanpa Grafik Rumit) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      
+      <!-- Total Seluruh UMKM -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-2xs space-y-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Total Terdaftar</span>
+        <div class="flex items-baseline justify-between">
+          <span id="stat-total" class="text-3xl font-black text-gray-900">{totalAll}</span>
+          <span class="text-xs text-gray-400 font-medium">Unit Usaha</span>
+        </div>
+        <p class="text-[11px] text-gray-500 pt-1 border-t border-gray-100">
+          Seluruh profil yang masuk ke sistem
+        </p>
+      </div>
+
+      <!-- Terbit (Tayang di Publik) -->
+      <div class="bg-white rounded-2xl p-5 border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/30 shadow-2xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-800">Sudah Terbit</span>
+          <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+        </div>
+        <div class="flex items-baseline justify-between">
+          <span id="stat-published" class="text-3xl font-black text-emerald-900">{totalPublished}</span>
+          <span class="text-xs text-emerald-700 font-medium">Tayang</span>
+        </div>
+        <p class="text-[11px] text-emerald-700 pt-1 border-t border-emerald-100">
+          Dapat dilihat seluruh pengunjung
+        </p>
+      </div>
+
+      <!-- Konsep / Draft -->
+      <div class="bg-white rounded-2xl p-5 border border-amber-200 bg-gradient-to-br from-white to-amber-50/30 shadow-2xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-800">Masih Konsep</span>
+          <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+        </div>
+        <div class="flex items-baseline justify-between">
+          <span id="stat-draft" class="text-3xl font-black text-amber-900">{totalDraft}</span>
+          <span class="text-xs text-amber-700 font-medium">Draft</span>
+        </div>
+        <p class="text-[11px] text-amber-700 pt-1 border-t border-amber-100">
+          Belum dipublikasikan ke website
+        </p>
+      </div>
+
+      <!-- Disembunyikan -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-2xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-gray-600">Disembunyikan</span>
+          <span class="h-2.5 w-2.5 rounded-full bg-gray-400"></span>
+        </div>
+        <div class="flex items-baseline justify-between">
+          <span id="stat-hidden" class="text-3xl font-black text-gray-700">{totalHidden}</span>
+          <span class="text-xs text-gray-500 font-medium">Arsip</span>
+        </div>
+        <p class="text-[11px] text-gray-500 pt-1 border-t border-gray-100">
+          Sementara tidak ditampilkan
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Daftar UMKM Terbaru -->
+    <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden space-y-4 p-6 sm:p-8">
+      <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+        <div>
+          <h2 class="text-lg font-bold text-gray-900">Daftar Usaha Terbaru</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Kelola informasi atau ubah status publikasi.</p>
+        </div>
+        <a
+          href="/admin/umkm"
+          class="text-xs font-bold text-village-700 hover:text-village-900 flex items-center gap-1"
+        >
+          <span>Buka Semua ({totalAll})</span>
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+
+      {allUMKM.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-gray-500 text-[11px] uppercase tracking-wider">
+                <th class="py-3 px-4 font-semibold">Nama Usaha</th>
+                <th class="py-3 px-4 font-semibold">Kategori</th>
+                <th class="py-3 px-4 font-semibold">Status</th>
+                <th class="py-3 px-4 font-semibold text-right">Tindakan</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {allUMKM.slice(0, 5).map((umkm) => {
+                const cat = categories.find((c) => c.id === umkm.categoryId);
+                return (
+                  <tr class="hover:bg-gray-50/70 transition">
+                    <td class="py-3 px-4">
+                      <div class="flex items-center gap-3">
+                        <img
+                          src={umkm.coverImage?.url || '/images/placeholder-umkm.jpg'}
+                          alt={umkm.name}
+                          class="h-10 w-10 rounded-lg object-cover bg-gray-100 shrink-0"
+                        />
+                        <div>
+                          <p class="font-bold text-gray-900 line-clamp-1">{umkm.name}</p>
+                          <p class="text-xs text-gray-500 line-clamp-1">{umkm.address}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 text-gray-600">
+                      {cat ? cat.name : 'Umum'}
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class:list={[
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                        umkm.status === 'published'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : umkm.status === 'draft'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : 'bg-gray-100 text-gray-700 border border-gray-200',
+                      ]}>
+                        {umkm.status === 'published' ? 'Terbit' : umkm.status === 'draft' ? 'Konsep' : 'Disembunyikan'}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <a
+                          href={`/umkm/${umkm.slug}`}
+                          target="_blank"
+                          class="p-1.5 text-gray-500 hover:text-village-700 hover:bg-village-50 rounded-lg transition"
+                          title="Lihat Halaman Publik"
+                        >
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </a>
+                        <a
+                          href={`/admin/umkm/edit/${umkm.id}`}
+                          class="inline-flex items-center gap-1 px-3 py-1 bg-village-50 text-village-800 hover:bg-village-700 hover:text-white rounded-lg text-xs font-semibold transition"
+                        >
+                          Edit
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="p-8 text-center text-gray-500 text-sm">
+          Belum ada UMKM yang terdaftar di sistem. Klik tombol "Tambah UMKM Baru" untuk memulai.
+        </div>
+      )}
+    </div>
+
+  </div>
+</AdminLayout>

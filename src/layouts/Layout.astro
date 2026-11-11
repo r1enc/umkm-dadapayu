@@ -1,0 +1,66 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  isDetailPage?: boolean;
+}
+
+const {
+  title = 'Katalog Digital UMKM Desa Dadapayu, Semanu, Gunungkidul',
+  description = 'Temukan beragam produk unggulan, kuliner khas, dan kerajinan tangan dari UMKM lokal Kalurahan Dadapayu, Semanu, Gunungkidul.',
+  ogImage = '/images/og-dadapayu.jpg',
+  canonicalUrl = Astro.url.href,
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- SEO Primer -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="Katalog UMKM Dadapayu" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalUrl} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#436c50" />
+  </head>
+  <body class="flex min-h-screen flex-col bg-gray-50 text-gray-800 antialiased selection:bg-village-200 selection:text-village-900">
+    <Header currentPath={currentPath} />
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <Footer />
+  </body>
+</html>

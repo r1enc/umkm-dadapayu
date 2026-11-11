@@ -1,0 +1,87 @@
+---
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+}
+
+const { currentPage, totalPages, baseUrl } = Astro.props;
+
+if (totalPages <= 1) {
+  return null;
+}
+
+function getPageUrl(page: number): string {
+  const url = new URL(baseUrl, 'http://localhost');
+  url.searchParams.set('page', page.toString());
+  return `${url.pathname}${url.search}`;
+}
+
+const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+---
+
+<nav aria-label="Navigasi Halaman" class="flex items-center justify-center gap-1.5 pt-8">
+  <!-- Tombol Sebelumnya -->
+  {currentPage > 1 ? (
+    <a
+      href={getPageUrl(currentPage - 1)}
+      class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+      aria-label="Halaman Sebelumnya"
+    >
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      <span class="hidden sm:inline">Sebelumnya</span>
+    </a>
+  ) : (
+    <span class="inline-flex items-center gap-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs sm:text-sm font-medium text-gray-400 cursor-not-allowed">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      <span class="hidden sm:inline">Sebelumnya</span>
+    </span>
+  )}
+
+  <!-- Nomor Halaman -->
+  <div class="flex items-center gap-1">
+    {pages.map((p) => {
+      const isCurrent = p === currentPage;
+      return isCurrent ? (
+        <span
+          class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-village-700 text-xs sm:text-sm font-bold text-white shadow-xs"
+          aria-current="page"
+        >
+          {p}
+        </span>
+      ) : (
+        <a
+          href={getPageUrl(p)}
+          class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+        >
+          {p}
+        </a>
+      );
+    })}
+  </div>
+
+  <!-- Tombol Berikutnya -->
+  {currentPage < totalPages ? (
+    <a
+      href={getPageUrl(currentPage + 1)}
+      class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+      aria-label="Halaman Berikutnya"
+    >
+      <span class="hidden sm:inline">Berikutnya</span>
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </a>
+  ) : (
+    <span class="inline-flex items-center gap-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs sm:text-sm font-medium text-gray-400 cursor-not-allowed">
+      <span class="hidden sm:inline">Berikutnya</span>
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </span>
+  )}
+</nav>

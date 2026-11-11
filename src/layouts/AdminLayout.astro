@@ -1,0 +1,204 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  activeNav?: 'dashboard' | 'umkm' | 'kategori';
+}
+
+const { title, activeNav = 'dashboard' } = Astro.props;
+
+// Cegah caching halaman admin agar selalu mendapatkan status terbaru
+Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} — Admin Katalog UMKM Dadapayu</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col font-sans antialiased">
+    
+    <!-- Top Bar Admin -->
+    <header class="bg-village-900 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+        <!-- Logo & Judul Dashboard -->
+        <div class="flex items-center gap-3">
+          <a href="/admin/dashboard" class="flex items-center gap-2.5">
+            <div class="h-9 w-9 rounded-lg bg-village-700 flex items-center justify-center font-bold text-white text-sm shadow-xs">
+              DP
+            </div>
+            <div>
+              <span class="block text-sm sm:text-base font-bold tracking-tight leading-tight">
+                Pengelola UMKM Dadapayu
+              </span>
+              <span class="block text-xs text-village-300">
+                Panel Perangkat Desa
+              </span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Akun & Tombol Aksi -->
+        <div class="flex items-center gap-3">
+          <a
+            href="/"
+            target="_blank"
+            class="hidden sm:inline-flex items-center gap-1 text-xs text-village-200 hover:text-white px-3 py-1.5 rounded-lg border border-village-700 hover:bg-village-800 transition"
+          >
+            <span>Lihat Website</span>
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+
+          <div id="admin-user-info" class="hidden md:flex flex-col text-right">
+            <span id="admin-email-display" class="text-xs font-semibold text-white">Memuat...</span>
+            <span class="text-[10px] text-village-300">Administrator</span>
+          </div>
+
+          <button
+            id="admin-logout-btn"
+            type="button"
+            class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Keluar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigasi Tab Admin (Sangat Jelas & Mudah untuk Orang Awam) -->
+      <nav class="bg-village-950 border-t border-village-800 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto py-2">
+          <a
+            href="/admin/dashboard"
+            class:list={[
+              'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition',
+              activeNav === 'dashboard'
+                ? 'bg-village-700 text-white shadow-xs'
+                : 'text-village-200 hover:bg-village-900 hover:text-white',
+            ]}
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span>Ringkasan Usaha</span>
+          </a>
+
+          <a
+            href="/admin/umkm"
+            class:list={[
+              'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition',
+              activeNav === 'umkm'
+                ? 'bg-village-700 text-white shadow-xs'
+                : 'text-village-200 hover:bg-village-900 hover:text-white',
+            ]}
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span>Kelola UMKM</span>
+          </a>
+
+          <a
+            href="/admin/kategori"
+            class:list={[
+              'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition',
+              activeNav === 'kategori'
+                ? 'bg-village-700 text-white shadow-xs'
+                : 'text-village-200 hover:bg-village-900 hover:text-white',
+            ]}
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <span>Kategori Usaha</span>
+          </a>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Konten Utama Admin -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <slot />
+    </main>
+
+    <!-- Global Toast Notifikasi -->
+    <div id="admin-toast" class="fixed bottom-5 right-5 z-50 hidden max-w-sm rounded-2xl bg-gray-900 text-white p-4 shadow-xl border border-gray-700 transition-all transform duration-300">
+      <div class="flex items-start gap-3">
+        <span id="admin-toast-icon" class="text-xl"></span>
+        <div class="flex-1">
+          <p id="admin-toast-title" class="text-sm font-bold"></p>
+          <p id="admin-toast-msg" class="text-xs text-gray-300 mt-0.5 leading-relaxed"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Script Pengaman Autentikasi Admin Klien -->
+    <script>
+      import { getClientAuth, logoutAdmin } from '../lib/firebase/client';
+      import { onAuthStateChanged } from 'firebase/auth';
+
+      const auth = getClientAuth();
+      const emailDisplay = document.getElementById('admin-email-display');
+      const logoutBtn = document.getElementById('admin-logout-btn');
+
+      let guardRun = 0;
+
+      // Pulihkan sesi dan verifikasi admin melalui endpoint server yang sama dengan login.
+      onAuthStateChanged(auth, async (user) => {
+        const currentRun = ++guardRun;
+        if (!user) {
+          window.location.href = '/admin/login';
+          return;
+        }
+
+        try {
+          const idToken = await user.getIdToken();
+          const response = await fetch('/api/admin/verify', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+          if (!response.ok) throw new Error('Sesi tidak memiliki akses admin yang valid.');
+          if (currentRun !== guardRun) return;
+          if (emailDisplay) emailDisplay.textContent = user.email || 'Admin Desa';
+        } catch (error) {
+          console.warn('[AdminGuard] Verifikasi sesi ditolak', {
+            uid: user.uid,
+            reason: error instanceof Error ? error.message : 'verification-failed',
+          });
+          if (currentRun === guardRun) {
+            await logoutAdmin();
+            window.location.href = '/admin/login';
+          }
+        }
+      });
+
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+          logoutBtn.setAttribute('disabled', 'true');
+          const label = logoutBtn.querySelector('span');
+          if (label) label.textContent = 'Keluar...';
+          try {
+            await logoutAdmin();
+            window.location.href = '/admin/login';
+          } catch (error) {
+            console.error('[AdminLogout] Gagal mengakhiri sesi lokal', {
+              reason: error instanceof Error ? error.name : 'unknown',
+            });
+            logoutBtn.removeAttribute('disabled');
+            if (label) label.textContent = 'Keluar';
+            alert('Sesi belum berhasil diakhiri. Coba tekan Keluar sekali lagi.');
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

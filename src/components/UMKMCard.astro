@@ -1,0 +1,74 @@
+---
+import type { UMKM } from '../types';
+import { getCategoryById } from '../data/mockData';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
+
+interface Props {
+  umkm: UMKM;
+}
+
+const { umkm } = Astro.props;
+const category = getCategoryById(umkm.categoryId);
+const optimizedCover = getOptimizedImageUrl(umkm.coverImage.url, {
+  width: 600,
+  height: 450,
+  crop: 'fill',
+});
+---
+
+<article class="group flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-200/80 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+  <!-- Foto Sampul -->
+  <a href={`/umkm/${umkm.slug}`} class="relative aspect-4/3 w-full overflow-hidden bg-gray-100 block">
+    <img
+      src={optimizedCover}
+      alt={umkm.coverImage.alt || umkm.name}
+      loading="lazy"
+      class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+    />
+    <div class="absolute top-3 left-3">
+      <span class="inline-flex items-center rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-village-800 shadow-sm backdrop-blur-xs">
+        {category ? category.name : 'UMKM Dadapayu'}
+      </span>
+    </div>
+  </a>
+
+  <!-- Konten Card -->
+  <div class="flex flex-1 flex-col p-5">
+    <!-- Judul Usaha -->
+    <h3 class="text-lg font-bold text-gray-900 group-hover:text-village-700 transition-colors line-clamp-1">
+      <a href={`/umkm/${umkm.slug}`} class="focus:outline-none focus:underline">
+        {umkm.name}
+      </a>
+    </h3>
+
+    <!-- Lokasi Singkat -->
+    <p class="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500">
+      <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      <span class="truncate">{umkm.address.split(',')[0]}</span>
+    </p>
+
+    <!-- Deskripsi Singkat -->
+    <p class="mt-2.5 text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">
+      {umkm.shortDescription}
+    </p>
+
+    <!-- Footer Card (Jumlah Produk & Tombol Detail) -->
+    <div class="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+      <span class="text-xs text-gray-500 font-medium">
+        {umkm.products.length > 0 ? `${umkm.products.length} Pilihan Produk` : 'Informasi Lengkap'}
+      </span>
+      <a
+        href={`/umkm/${umkm.slug}`}
+        class="inline-flex items-center gap-1 rounded-lg bg-village-50 px-3 py-1.5 text-xs font-semibold text-village-800 hover:bg-village-700 hover:text-white transition-colors"
+      >
+        <span>Lihat Detail</span>
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</article>

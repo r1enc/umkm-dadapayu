@@ -1,0 +1,225 @@
+rules_version = '2';
+
+// ===============================================================
+// Cloud Firestore Security Rules
+// Proyek: Katalog Digital UMKM Desa Dadapayu, Semanu, Gunungkidul
+// ===============================================================
+//
+// Assumed Data Model:
+//
+// Collection: categories
+// Document ID: {categoryId}
+// Fields:
+//   - name: string (required, 1-100 chars)
+//   - slug: string (required, 1-100 chars)
+//   - sortOrder: number (required, int or float)
+//   - active: bool (required)
+//   - createdAt: string or timestamp (optional, immutable after creation)
+//   - updatedAt: string or timestamp (optional)
+//
+// Collection: umkms
+// Document ID: {umkmId}
+// Fields:
+//   - name: string (required, 1-150 chars)
+//   - slug: string (required, 1-150 chars)
+//   - categoryId: string (required, 1-100 chars)
+//   - status: string (required, 'draft' | 'published' | 'hidden')
+//   - address: string (required, 1-300 chars)
+//   - whatsapp: string (required, 10-25 chars)
+//   - shortDescription: string (optional, max 500 chars)
+//   - description: string (optional, max 5000 chars)
+//   - coverImage: map (optional, max 10 keys)
+//   - gallery: list (optional, max 20 items)
+//   - mapsUrl: string (optional, max 500 chars)
+//   - openingHours: string (optional, max 100 chars)
+//   - products: list (optional, max 50 items)
+//   - createdAt: string or timestamp (optional, immutable after creation)
+//   - updatedAt: string or timestamp (optional)
+//
+// Collection: admins
+// Document ID: {adminId} (matches Firebase Auth UID)
+// Fields:
+//   - email: string (required, valid email, max 100 chars)
+//   - role: string (required, 'admin' | 'superadmin')
+//   - uid: string (optional, matches adminId, immutable)
+//   - createdAt: string or timestamp (optional, immutable after creation)
+//   - updatedAt: string or timestamp (optional)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------
+    // Default Deny Root
+    // -----------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===========================================================
+    // Helper Functions
+    // ===========================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isDocOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdminDoc(uid) {
+      return exists(/databases/$(database)/documents/admins/$(uid));
+    }
+
+    function getAdminRole(uid) {
+      return get(/databases/$(database)/documents/admins/$(uid)).data.role;
+    }
+
+    function hasCustomClaimRole(allowedRoles) {
+      return 'role' in request.auth.token && request.auth.token.role in allowedRoles;
+    }
+
+    // Role-Based Access Control (RBAC):
+    // Memeriksa apakah pengguna memiliki role admin atau superadmin baik melalui
+    // koleksi admins/$(uid) maupun melalui Auth custom claims.
+    function isAdmin() {
+      return isAuthenticated() && (
+        hasCustomClaimRole(['admin', 'superadmin']) ||
+        (isAdminDoc(request.auth.uid) && getAdminRole(request.auth.uid) in ['admin', 'superadmin'])
+      );
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        hasCustomClaimRole(['superadmin']) ||
+        (isAdminDoc(request.auth.uid) && getAdminRole(request.auth.uid) == 'superadmin')
+      );
+    }
+
+    // Mencegah modifikasi field yang bersifat kekal (immutable) setelah dokumen dibuat
+    function isFieldUnchanged(field) {
+      return !(field in resource.data) ||
+             (field in request.resource.data && request.resource.data[field] == resource.data[field]);
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+             email.size() >= 5 &&
+             email.size() <= 100 &&
+             email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    // ===========================================================
+    // Domain Validators (Validator Function Pattern)
+    // Dipanggil pada create DAN update untuk mencegah bypass validasi
+    // ===========================================================
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name', 'slug', 'sortOrder', 'active']) &&
+             data.keys().hasOnly(['name', 'slug', 'sortOrder', 'active', 'createdAt', 'updatedAt']) &&
+             // String bounds & non-empty
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.slug is string && data.slug.size() > 0 && data.slug.size() <= 100 &&
+             // Number bounds (int or float)
+             (data.sortOrder is int || data.sortOrder is float) &&
+             // Boolean
+             data.active is bool &&
+             // Optional timestamp/string dates
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+    }
+
+    function isValidUMKM(data) {
+      return data.keys().hasAll(['name', 'slug', 'categoryId', 'status', 'address', 'whatsapp']) &&
+             data.keys().hasOnly([
+               'name', 'slug', 'categoryId', 'status', 'address', 'whatsapp',
+               'shortDescription', 'description', 'coverImage', 'gallery',
+               'mapsUrl', 'openingHours', 'products', 'createdAt', 'updatedAt'
+             ]) &&
+             // Wajib: Nama (1-150 karakter)
+             data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             // Wajib: Slug (1-150 karakter)
+             data.slug is string && data.slug.size() > 0 && data.slug.size() <= 150 &&
+             // Wajib: CategoryId (1-100 karakter)
+             data.categoryId is string && data.categoryId.size() > 0 && data.categoryId.size() <= 100 &&
+             // Wajib: Status valid enum
+             data.status in ['draft', 'published', 'hidden'] &&
+             // Wajib: Alamat (1-300 karakter)
+             data.address is string && data.address.size() > 0 && data.address.size() <= 300 &&
+             // Wajib: WhatsApp minimal 10 digit, batas aman hingga 25 karakter
+             data.whatsapp is string && data.whatsapp.size() >= 10 && data.whatsapp.size() <= 25 &&
+             // Opsional: Deskripsi singkat dan panjang dengan batas DoS
+             (!('shortDescription' in data) || (data.shortDescription is string && data.shortDescription.size() <= 500)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 5000)) &&
+             (!('mapsUrl' in data) || (data.mapsUrl is string && data.mapsUrl.size() <= 500)) &&
+             (!('openingHours' in data) || (data.openingHours is string && data.openingHours.size() <= 100)) &&
+             // Opsional: Struktur Map dan List dengan batas kuantitas
+             (!('coverImage' in data) || (data.coverImage is map && data.coverImage.keys().size() <= 10)) &&
+             (!('gallery' in data) || (data.gallery is list && data.gallery.size() <= 20)) &&
+             (!('products' in data) || (data.products is list && data.products.size() <= 50)) &&
+             // Opsional: Timestamp / ISO date string
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+    }
+
+    function isValidAdmin(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+             data.keys().hasOnly(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'superadmin'] &&
+             (!('uid' in data) || (data.uid is string && data.uid.size() > 0 && data.uid.size() <= 128)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+    }
+
+    // ===========================================================
+    // Collection Rules
+    // ===========================================================
+
+    // 1. Koleksi Kategori
+    match /categories/{categoryId} {
+      // Publik hanya boleh membaca kategori yang berstatus active == true.
+      // Admin yang terautentikasi dapat membaca semua kategori (termasuk yang non-aktif).
+      allow read: if (resource.data.active == true) || isAdmin();
+
+      // Hanya admin/superadmin terautentikasi yang boleh create, update, delete
+      allow create: if isAdmin() && isValidCategory(request.resource.data);
+      allow update: if isAdmin() && isValidCategory(request.resource.data) && isFieldUnchanged('createdAt');
+      allow delete: if isAdmin();
+    }
+
+    // 2. Koleksi UMKM
+    match /umkms/{umkmId} {
+      // Publik hanya boleh membaca dokumen berstatus 'published'.
+      // Admin dapat membaca semua dokumen berstatus apa pun (draft, published, hidden).
+      allow read: if (resource.data.status == 'published') || isAdmin();
+
+      // Hanya admin/superadmin terautentikasi yang boleh create, update, delete
+      allow create: if isAdmin() && isValidUMKM(request.resource.data);
+      allow update: if isAdmin() && isValidUMKM(request.resource.data) && isFieldUnchanged('createdAt');
+      allow delete: if isAdmin();
+    }
+
+    // 3. Koleksi Admin (Manajemen Peran & Akses)
+    match /admins/{adminId} {
+      // Tidak boleh dibaca publik.
+      // Hanya boleh dibaca oleh pemilik UID akun yang bersangkutan atau oleh superadmin.
+      allow read: if isAuthenticated() && (request.auth.uid == adminId || isSuperAdmin());
+
+      // Hanya superadmin yang dapat menambah, mengubah, atau mencabut hak admin.
+      allow create: if isSuperAdmin() &&
+                       isValidAdmin(request.resource.data) &&
+                       (!('uid' in request.resource.data) || request.resource.data.uid == adminId);
+
+      allow update: if isSuperAdmin() &&
+                       isValidAdmin(request.resource.data) &&
+                       isFieldUnchanged('uid') &&
+                       isFieldUnchanged('createdAt');
+
+      // Superadmin tidak boleh menghapus akunnya sendiri melalui aturan ini untuk mencegah lockout
+      allow delete: if isSuperAdmin() && request.auth.uid != adminId;
+    }
+  }
+}

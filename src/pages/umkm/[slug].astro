@@ -1,0 +1,382 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
+import UMKMCard from '../../components/UMKMCard.astro';
+import {
+  formatRupiah,
+  createWhatsAppLink,
+} from '../../data/mockData';
+import { fetchUMKMBySlug, fetchUMKMByCategory } from '../../lib/services/umkmService';
+import { fetchCategoryById } from '../../lib/services/categoryService';
+import { getOptimizedImageUrl } from '../../lib/cloudinary';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/katalog');
+}
+
+const umkm = await fetchUMKMBySlug(slug);
+
+if (!umkm) {
+  // Mengembalikan status 404 jika slug tidak terdaftar
+  Astro.response.status = 404;
+  return Astro.redirect('/404');
+}
+
+const category = await fetchCategoryById(umkm.categoryId);
+
+// UMKM terkait dalam kategori yang sama (selain UMKM saat ini)
+const categoryUMKMs = await fetchUMKMByCategory(umkm.categoryId);
+const relatedUMKM = categoryUMKMs
+  .filter((item) => item.id !== umkm.id)
+  .slice(0, 3);
+
+// Breadcrumb items
+const breadcrumbItems = [
+  { name: 'Katalog UMKM', url: '/katalog' },
+  ...(category ? [{ name: category.name, url: `/kategori/${category.slug}` }] : []),
+  { name: umkm.name },
+];
+
+// Pre-filled WhatsApp link utama
+const mainWhatsAppUrl = createWhatsAppLink(umkm.whatsapp, umkm.name);
+
+// Optimasi Cover Image via Cloudinary CDN
+const optimizedCoverUrl = getOptimizedImageUrl(umkm.coverImage.url, {
+  width: 1200,
+  crop: 'limit',
+});
+
+// Cache header
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
+);
+
+// Schema.org Structured Data untuk Google Search Crawler (Rich Snippet LocalBusiness)
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: umkm.name,
+  description: umkm.shortDescription,
+  image: [umkm.coverImage.url, ...umkm.gallery.map((g) => g.url)],
+  telephone: `+${umkm.whatsapp}`,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: umkm.address,
+    addressLocality: 'Semanu',
+    addressRegion: 'Gunungkidul, D.I. Yogyakarta',
+    postalCode: '55893',
+    addressCountry: 'ID',
+  },
+  url: Astro.url.href,
+  hasMap: umkm.mapsUrl,
+  ...(umkm.openingHours ? { openingHours: umkm.openingHours } : {}),
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Daftar Produk / Menu',
+    itemListElement: umkm.products.map((p, idx) => ({
+      '@type': 'Offer',
+      itemOffered: {
+        '@type': 'Product',
+        name: p.name,
+        description: p.description || '',
+      },
+      ...(p.price ? { price: p.price, priceCurrency: 'IDR' } : {}),
+      position: idx + 1,
+    })),
+  },
+};
+---
+
+<Layout
+  title={`${umkm.name} - Profil & Produk UMKM Desa Dadapayu`}
+  description={umkm.shortDescription}
+  ogImage={umkm.coverImage.url}
+  isDetailPage={true}
+>
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <!-- Breadcrumbs & Header -->
+  <div class="bg-gray-50 border-b border-gray-200">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+      <Breadcrumb items={breadcrumbItems} />
+    </div>
+  </div>
+
+  <article class="py-8 sm:py-12 bg-white">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <!-- Grid Utama: Kolom Foto/Konten & Kolom Kontak/Aksi -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        
+        <!-- KOLOM KIRI (Foto & Informasi Usaha) -->
+        <div class="lg:col-span-8 space-y-8">
+          
+          <!-- Foto Utama & Galeri -->
+          <div class="space-y-4">
+            <div class="aspect-16/10 sm:aspect-16/9 w-full overflow-hidden rounded-3xl bg-gray-100 shadow-md border border-gray-200">
+              <img
+                id="main-display-image"
+                src={optimizedCoverUrl}
+                alt={umkm.coverImage.alt || umkm.name}
+                class="h-full w-full object-cover transition-opacity duration-300"
+                loading="eager"
+              />
+            </div>
+
+            <!-- Galeri Foto Tambahan (Hanya muncul jika ada foto galeri) -->
+            {umkm.gallery.length > 0 && (
+              <div class="space-y-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Galeri Foto Produk:</span>
+                <div class="flex items-center gap-3 overflow-x-auto pb-2">
+                  <button
+                    type="button"
+                    class="gallery-thumb-btn aspect-square w-20 shrink-0 overflow-hidden rounded-xl border-2 border-village-600 shadow-xs focus:outline-none"
+                    data-img={umkm.coverImage.url}
+                    data-alt={umkm.coverImage.alt || umkm.name}
+                  >
+                    <img src={umkm.coverImage.url} alt="Foto utama" class="h-full w-full object-cover" />
+                  </button>
+                  {umkm.gallery.map((img, idx) => (
+                    <button
+                      type="button"
+                      class="gallery-thumb-btn aspect-square w-20 shrink-0 overflow-hidden rounded-xl border-2 border-transparent hover:border-village-400 shadow-xs focus:outline-none opacity-80 hover:opacity-100 transition"
+                      data-img={img.url}
+                      data-alt={img.alt || `${umkm.name} foto ${idx + 1}`}
+                    >
+                      <img src={img.url} alt={img.alt || `Foto ${idx + 1}`} class="h-full w-full object-cover" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <!-- Judul & Kategori -->
+          <div class="space-y-3 pb-6 border-b border-gray-100">
+            <div class="flex flex-wrap items-center gap-2">
+              {category && (
+                <a
+                  href={`/kategori/${category.slug}`}
+                  class="inline-flex items-center rounded-full bg-village-50 px-3 py-1 text-xs font-bold text-village-800 hover:bg-village-100 transition"
+                >
+                  {category.name}
+                </a>
+              )}
+              <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+                Usaha Aktif Berproduksi
+              </span>
+            </div>
+
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+              {umkm.name}
+            </h1>
+
+            <p class="text-base sm:text-lg text-gray-700 leading-relaxed font-medium">
+              {umkm.shortDescription}
+            </p>
+          </div>
+
+          <!-- Deskripsi Lengkap Usaha -->
+          <div class="space-y-4">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-900">Tentang Usaha Ini</h2>
+            <div class="prose max-w-none text-sm sm:text-base text-gray-600 leading-relaxed space-y-3">
+              <p>{umkm.description}</p>
+            </div>
+          </div>
+
+          <!-- Daftar Produk & Menu (Hanya muncul jika ada produk) -->
+          {umkm.products.length > 0 && (
+            <div class="space-y-6 pt-6 border-t border-gray-100">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-gray-900">Daftar Produk / Layanan</h2>
+                  <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Pilihan menu dan komoditas unggulan yang tersedia.</p>
+                </div>
+                <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-md">
+                  {umkm.products.length} Item
+                </span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {umkm.products.map((product) => {
+                  const productWaLink = createWhatsAppLink(umkm.whatsapp, umkm.name, product.name);
+                  return (
+                    <div class="flex flex-col justify-between rounded-2xl border border-gray-200/90 bg-gray-50/50 p-4 hover:border-village-300 hover:bg-white hover:shadow-xs transition">
+                      <div class="space-y-2">
+                        {product.image && (
+                          <div class="aspect-16/10 w-full overflow-hidden rounded-xl bg-gray-100 mb-3">
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              class="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+                        <h3 class="font-bold text-gray-900 text-sm sm:text-base leading-snug">
+                          {product.name}
+                        </h3>
+                        {product.description && (
+                          <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                            {product.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div class="mt-4 pt-3 border-t border-gray-200/60 flex items-center justify-between gap-2">
+                        <span class="text-sm font-extrabold text-village-800">
+                          {formatRupiah(product.price)}
+                        </span>
+                        <a
+                          href={productWaLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-emerald-700 transition"
+                        >
+                          <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                          </svg>
+                          <span>Pesan Produk</span>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        <!-- KOLOM KANAN (Sidebar Kontak & Lokasi) -->
+        <div class="lg:col-span-4 space-y-6">
+          <div class="sticky top-20 rounded-3xl border border-gray-200/90 bg-gray-50/70 p-6 shadow-xs space-y-6">
+            
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-village-700">Kontak Resmi Usaha</span>
+              <h2 class="text-xl font-extrabold text-gray-900 mt-1">Hubungi Langsung</h2>
+              <p class="text-xs text-gray-500 mt-1">
+                Terkoneksi langsung ke kontak WhatsApp pemilik usaha.
+              </p>
+            </div>
+
+            <!-- Tombol Utama WhatsApp -->
+            <a
+              href={mainWhatsAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 px-4 text-center text-sm font-bold text-white shadow-md hover:bg-emerald-700 transition"
+            >
+              <svg class="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+              <span>Chat WhatsApp Pemilik</span>
+            </a>
+
+            <!-- Tombol Buka Google Maps -->
+            <a
+              href={umkm.mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white py-3 px-4 text-center text-sm font-semibold text-gray-800 shadow-2xs hover:bg-gray-100 transition"
+            >
+              <svg class="h-5 w-5 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Buka Petunjuk Arah (Maps)</span>
+            </a>
+
+            <!-- Alamat Lengkap -->
+            <div class="space-y-1 pt-3 border-t border-gray-200">
+              <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Alamat Usaha:</span>
+              <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                {umkm.address}
+              </p>
+            </div>
+
+            <!-- Jam Operasional (Hanya ditampilkan jika tersedia) -->
+            {umkm.openingHours && (
+              <div class="space-y-1 pt-3 border-t border-gray-200">
+                <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Jam Buka / Layanan:</span>
+                <p class="text-xs sm:text-sm text-gray-600 flex items-center gap-1.5 mt-0.5">
+                  <svg class="h-4 w-4 text-village-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{umkm.openingHours}</span>
+                </p>
+              </div>
+            )}
+
+            <!-- Catatan Pengunjung -->
+            <div class="rounded-xl bg-village-100/60 p-3 text-xs text-village-900 leading-relaxed">
+              💡 <strong>Tips:</strong> Disarankan menghubungi terlebih dahulu via WhatsApp sebelum berkunjung langsung ke lokasi untuk memastikan stok ketersediaan produk.
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- UMKM Terkait dalam Kategori Sama -->
+      {relatedUMKM.length > 0 && (
+        <section class="mt-16 pt-12 border-t border-gray-200">
+          <div class="flex items-center justify-between mb-8">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-village-700">Jelajahi Serupa</span>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900 mt-0.5">
+                UMKM Lain di Kategori {category ? category.name : ''}
+              </h2>
+            </div>
+            {category && (
+              <a
+                href={`/kategori/${category.slug}`}
+                class="text-xs sm:text-sm font-semibold text-village-700 hover:underline"
+              >
+                Lihat Semua
+              </a>
+            )}
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {relatedUMKM.map((item) => (
+              <UMKMCard umkm={item} />
+            ))}
+          </div>
+        </section>
+      )}
+
+    </div>
+  </article>
+</Layout>
+
+<!-- Interaktivitas Galeri Foto (Zero Heavy Framework) -->
+<script>
+  const mainImage = document.getElementById('main-display-image') as HTMLImageElement | null;
+  const thumbButtons = document.querySelectorAll<HTMLButtonElement>('.gallery-thumb-btn');
+
+  if (mainImage && thumbButtons.length > 0) {
+    thumbButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const newUrl = btn.dataset.img;
+        const newAlt = btn.dataset.alt;
+        if (newUrl) {
+          mainImage.src = newUrl;
+          if (newAlt) mainImage.alt = newAlt;
+
+          // Perbarui border aktif
+          thumbButtons.forEach((b) => {
+            b.classList.remove('border-village-600', 'opacity-100');
+            b.classList.add('border-transparent', 'opacity-80');
+          });
+          btn.classList.add('border-village-600', 'opacity-100');
+          btn.classList.remove('border-transparent', 'opacity-80');
+        }
+      });
+    });
+  }
+</script>

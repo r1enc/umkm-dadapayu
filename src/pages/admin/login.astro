@@ -1,0 +1,209 @@
+---
+import '../../styles/global.css';
+
+Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Masuk Panel Admin — Katalog UMKM Desa Dadapayu</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl border border-gray-200/80 p-8 sm:p-10 space-y-8">
+      
+      <!-- Identitas Desa -->
+      <div class="text-center space-y-3">
+        <div class="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-village-700 to-village-900 flex items-center justify-center text-white text-2xl font-black shadow-md">
+          DP
+        </div>
+        <h1 class="text-2xl font-black text-gray-900 tracking-tight">
+          Panel Pengelola Desa
+        </h1>
+        <p class="text-xs sm:text-sm text-gray-500">
+          Katalog Digital UMKM Kalurahan Dadapayu, Semanu, Gunungkidul
+        </p>
+      </div>
+
+      <!-- Pesan Kesalahan / Notifikasi -->
+      <div id="login-error-box" role="alert" aria-live="assertive" aria-atomic="true" class="hidden rounded-xl bg-red-50 border border-red-200 p-4 text-xs text-red-800 leading-relaxed">
+        <div class="flex items-start justify-between gap-3">
+          <span id="login-error-msg"></span>
+          <button id="login-error-close" type="button" class="shrink-0 rounded px-1 text-lg leading-none text-red-700 hover:bg-red-100" aria-label="Tutup pesan">&times;</button>
+        </div>
+      </div>
+
+      <!-- Form Login -->
+      <form
+        id="login-form"
+        class="space-y-5"
+        novalidate
+      >
+        <div>
+          <label for="email" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+            Email Administrator
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            autocomplete="email"
+            placeholder="admin@dadapayu.desa.id"
+            class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-village-600 focus:outline-none focus:ring-1 focus:ring-village-600 shadow-2xs"
+          />
+        </div>
+
+        <div>
+          <label for="password" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+            Kata Sandi
+          </label>
+          <input
+            id="password"
+            type="password"
+            required
+            autocomplete="current-password"
+            placeholder="••••••••"
+            class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-village-600 focus:outline-none focus:ring-1 focus:ring-village-600 shadow-2xs"
+          />
+        </div>
+
+        <button
+          id="login-btn"
+          type="submit"
+          class="w-full rounded-xl bg-village-700 py-3.5 px-4 text-center text-sm font-bold text-white shadow-md hover:bg-village-800 focus:outline-none focus:ring-2 focus:ring-village-600 focus:ring-offset-2 transition flex items-center justify-center gap-2"
+        >
+          <span id="login-btn-text">Masuk ke Panel Pengelola</span>
+          <svg id="login-spinner" class="hidden h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+        </button>
+        <p id="login-progress" role="status" aria-live="polite" class="hidden text-center text-xs text-gray-600">
+          Sedang memeriksa akun…
+        </p>
+      </form>
+
+      <!-- Informasi Akses Tertutup -->
+      <div class="pt-4 border-t border-gray-100 text-center space-y-2">
+        <p class="text-xs text-gray-500">
+          Pendaftaran akun publik tidak tersedia. Akun hanya dapat dibuat dan diotorisasi oleh administrator pengelola kalurahan.
+        </p>
+        <p>
+          <a href="/" class="text-xs font-semibold text-village-700 hover:underline">
+            ← Kembali ke Website Utama
+          </a>
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Script Login Client -->
+    <script>
+      import { loginAdminWithCredentials, getClientAuth } from '../../lib/firebase/client';
+
+      const form = document.getElementById('login-form') as HTMLFormElement;
+      const emailInput = document.getElementById('email') as HTMLInputElement;
+      const passInput = document.getElementById('password') as HTMLInputElement;
+      const btn = document.getElementById('login-btn') as HTMLButtonElement;
+      const btnText = document.getElementById('login-btn-text');
+      const spinner = document.getElementById('login-spinner');
+      const progress = document.getElementById('login-progress');
+      const errBox = document.getElementById('login-error-box');
+      const errMsg = document.getElementById('login-error-msg');
+      const errClose = document.getElementById('login-error-close');
+      let auth: ReturnType<typeof getClientAuth> | null = null;
+
+      const showLoginError = (message: string) => {
+        if (errMsg) errMsg.textContent = message;
+        errBox?.classList.remove('hidden');
+      };
+
+      const errorMessage = (error: any) => {
+        const code = typeof error?.code === 'string' ? error.code : '';
+        if (['auth/invalid-credential', 'auth/invalid-login-credentials', 'auth/user-not-found', 'auth/wrong-password'].includes(code)) {
+          return 'Email atau kata sandi yang Anda masukkan tidak sesuai.';
+        }
+        if (code === 'auth/invalid-email') return 'Format email belum benar. Periksa kembali alamat email Anda.';
+        if (code === 'auth/too-many-requests') return 'Terlalu banyak percobaan gagal. Tunggu beberapa menit sebelum mencoba lagi.';
+        if (code === 'auth/operation-not-allowed') return 'Login email dan kata sandi belum diaktifkan pada Firebase project ini.';
+        if (code === 'auth/network-request-failed') return 'Tidak dapat terhubung ke Firebase. Periksa koneksi internet lalu coba lagi.';
+        if (code === 'auth/invalid-api-key' || code === 'auth/configuration-not-found' || code.includes('api-key-not-valid')) {
+          return 'Konfigurasi Firebase belum benar. Hubungi pengelola aplikasi.';
+        }
+        if (error?.name === 'AdminVerificationError' && typeof error?.message === 'string') return error.message;
+        if (error?.name === 'LoginStageTimeoutError' && typeof error?.message === 'string') return error.message;
+        if (error?.name === 'TimeoutError' || error?.name === 'TypeError') {
+          return 'Tidak mendapat jawaban dari Firebase. Periksa koneksi, lalu coba lagi.';
+        }
+        if (code === 'permission-denied' || code === 'firestore/permission-denied') {
+          return 'Login berhasil, tetapi data hak admin tidak dapat dibaca. Periksa dokumen admins pada Firebase.';
+        }
+        if (error?.message?.includes('tidak memiliki hak akses')) return 'Akun ini belum terdaftar sebagai admin katalog.';
+        if (error?.message?.includes('UID pada dokumen admin')) return 'UID pada dokumen admins tidak sama dengan UID akun yang sedang login.';
+        if (error?.message?.includes('Email pada dokumen admin')) return 'Email pada dokumen admins tidak sama dengan email akun yang sedang login.';
+        if (error?.message?.includes('Role Anda')) return 'Akun ini tidak memiliki peran admin katalog.';
+        if (/^[a-z0-9/_-]+$/i.test(code)) return `Login gagal (${code}). Periksa koneksi Firebase atau hubungi pengelola.`;
+        return 'Login belum berhasil. Periksa koneksi dan konfigurasi Firebase, lalu coba lagi.';
+      };
+
+      try {
+        auth = getClientAuth();
+      } catch {
+        showLoginError('Konfigurasi Firebase belum tersedia atau belum benar. Hubungi pengelola aplikasi.');
+      }
+
+      // Jangan redirect otomatis berdasarkan sesi tersimpan; pengguna tetap bisa memilih akun di form.
+
+      errClose?.addEventListener('click', () => {
+        errBox?.classList.add('hidden');
+      });
+
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          if (!emailInput.value.trim() || !passInput.value) {
+            showLoginError('Email dan kata sandi wajib diisi.');
+            return;
+          }
+          if (!emailInput.checkValidity()) {
+            showLoginError('Format email belum benar. Periksa kembali alamat email Anda.');
+            emailInput.focus();
+            return;
+          }
+          if (!auth) {
+            showLoginError('Konfigurasi Firebase belum tersedia atau belum benar. Hubungi pengelola aplikasi.');
+            return;
+          }
+
+          if (errBox) errBox.classList.add('hidden');
+          if (btn) btn.disabled = true;
+          if (btnText) btnText.textContent = 'Memverifikasi...';
+          if (spinner) spinner.classList.remove('hidden');
+          progress?.classList.remove('hidden');
+
+          try {
+            await loginAdminWithCredentials(emailInput.value.trim(), passInput.value, (message) => {
+              if (progress) progress.textContent = message;
+            });
+            window.location.href = '/admin/dashboard';
+          } catch (error: any) {
+            console.error('[AdminLogin] Sign-in flow failed', {
+              code: typeof error?.code === 'string' ? error.code : 'unknown',
+              errorName: typeof error?.name === 'string' ? error.name : 'unknown',
+            });
+            showLoginError(errorMessage(error));
+          } finally {
+            if (btn) btn.disabled = false;
+            if (btnText) btnText.textContent = 'Masuk ke Panel Pengelola';
+            if (spinner) spinner.classList.add('hidden');
+            progress?.classList.add('hidden');
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

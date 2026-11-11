@@ -1,0 +1,25 @@
+# Build and cache outputs
+dist/
+.astro/
+.output/
+.wrangler/
+.tmp-appdata/
+
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment secrets
+.env
+.env.production
+.env.local
+*.local
+
+# OS files
+.DS_Store
+Thumbs.db

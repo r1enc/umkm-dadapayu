@@ -1,0 +1,60 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="border-t border-gray-200 bg-gray-900 text-gray-300">
+  <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 gap-8 md:grid-cols-4">
+      <!-- Kolom Identitas -->
+      <div class="space-y-4 md:col-span-2">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-village-700 text-white font-bold">
+            DP
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white tracking-tight">Katalog Digital UMKM</h3>
+            <p class="text-xs text-gray-400">Kalurahan Dadapayu, Kapanewon Semanu, Gunungkidul</p>
+          </div>
+        </div>
+        <p class="text-sm text-gray-400 leading-relaxed max-w-md">
+          Portal promosi dan katalog resmi potensi usaha mikro, kecil, dan menengah Desa Dadapayu. Menghubungkan produk lokal unggulan desa langsung ke tangan pembeli.
+        </p>
+      </div>
+
+      <!-- Kolom Tautan Cepat -->
+      <div>
+        <h4 class="text-sm font-semibold uppercase tracking-wider text-gray-200 mb-3">Tautan Cepat</h4>
+        <ul class="space-y-2 text-sm">
+          <li><a href="/" class="hover:text-white transition">Beranda</a></li>
+          <li><a href="/katalog" class="hover:text-white transition">Katalog UMKM</a></li>
+          <li><a href="/kategori" class="hover:text-white transition">Daftar Kategori</a></li>
+          <li><a href="/tentang" class="hover:text-white transition">Profil Desa Dadapayu</a></li>
+          <li><a href="/admin" class="hover:text-white transition text-xs text-gray-400">Masuk Pengelola</a></li>
+        </ul>
+      </div>
+
+      <!-- Kolom Kontak Desa -->
+      <div>
+        <h4 class="text-sm font-semibold uppercase tracking-wider text-gray-200 mb-3">Kantor Kalurahan</h4>
+        <div class="space-y-2 text-sm text-gray-400">
+          <p class="flex items-start gap-2">
+            <svg class="h-5 w-5 text-gray-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Dadapayu, Semanu, Kabupaten Gunungkidul, D.I. Yogyakarta 55893</span>
+          </p>
+          <p class="text-xs text-gray-400 pt-2">
+            Program KKN Pengembangan Potensi Ekonomi Kalurahan Dadapayu.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Garis Pemisah & Hak Cipta -->
+    <div class="mt-10 border-t border-gray-800 pt-6 text-center text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p>&copy; {currentYear} Pemerintah Kalurahan Dadapayu. Hak cipta dilindungi.</p>
+      <p class="text-gray-400">Website Katalog Non-Komersial</p>
+    </div>
+  </div>
+</footer>

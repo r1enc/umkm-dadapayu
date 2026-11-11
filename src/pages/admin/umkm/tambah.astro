@@ -1,0 +1,696 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { fetchCategories } from '../../../lib/services/categoryService';
+
+const categories = await fetchCategories();
+---
+
+<AdminLayout title="Tambah UMKM Baru" activeNav="umkm">
+  <div class="max-w-4xl mx-auto space-y-6">
+    
+    <!-- Header Form -->
+    <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+      <div>
+        <a href="/admin/umkm" class="text-xs font-semibold text-village-700 hover:underline flex items-center gap-1 mb-1">
+          ← Kembali ke Daftar UMKM
+        </a>
+        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">
+          Formulir Tambah UMKM Baru
+        </h1>
+        <p class="text-xs text-gray-500 mt-0.5">
+          Lengkapi data profil usaha warga Dadapayu di bawah ini.
+        </p>
+      </div>
+    </div>
+
+    <!-- Kotak Notifikasi / Error -->
+    <div id="form-alert" class="hidden rounded-2xl p-4 text-xs font-medium leading-relaxed"></div>
+
+    <form id="umkm-form" class="space-y-8">
+      
+      <!-- KELOMPOK 1: INFORMASI USAHA -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+            1
+          </div>
+          <h2 class="text-base font-bold text-gray-900">Informasi Pokok Usaha</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Nama UMKM -->
+          <div class="sm:col-span-2">
+            <label for="name" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Nama UMKM / Usaha <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="name"
+              type="text"
+              required
+              placeholder="Contoh: Tiwul Manis Bu Sri"
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+
+          <!-- Kategori -->
+          <div>
+            <label for="categoryId" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Kategori Usaha <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="categoryId"
+              required
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs bg-white"
+            >
+              <option value="">Pilih Kategori...</option>
+              {categories.map((c) => (
+                <option value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Slug URL -->
+          <div>
+            <label for="slug" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Tautan URL (Slug) <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="slug"
+              type="text"
+              required
+              placeholder="tiwul-manis-bu-sri"
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm font-mono text-xs focus:outline-none focus:border-village-600 shadow-2xs bg-gray-50"
+            />
+          </div>
+
+          <!-- Deskripsi Singkat -->
+          <div class="sm:col-span-2">
+            <label for="shortDescription" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Deskripsi Singkat (1-2 Kalimat) <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="shortDescription"
+              type="text"
+              required
+              maxlength="200"
+              placeholder="Ringkasan produk untuk kartu katalog (maksimal 200 karakter)"
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+
+          <!-- Deskripsi Lengkap -->
+          <div class="sm:col-span-2">
+            <label for="description" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Cerita & Penjelasan Lengkap Usaha
+            </label>
+            <textarea
+              id="description"
+              rows="4"
+              placeholder="Ceritakan sejarah usaha, keunggulan bahan baku, atau tradisi pembuatan..."
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            ></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- KELOMPOK 2: FOTO & GALERI -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+            2
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-gray-900">Foto Utama & Galeri Produk</h2>
+            <p class="text-xs text-gray-500">Foto akan dioptimalkan otomatis oleh CDN Cloudinary agar ringan di HP pengunjung.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <!-- Foto Utama (Cover) -->
+          <div class="space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">
+              Foto Utama Profil <span class="text-red-500">*</span>
+            </label>
+            <div id="cover-preview-box" class="aspect-16/10 rounded-2xl border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center relative">
+              <img id="cover-preview-img" src="" alt="Pratinjau Foto Utama" class="h-full w-full object-cover hidden" />
+              <div id="cover-placeholder" class="text-center p-4">
+                <svg class="h-8 w-8 text-gray-400 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="text-xs text-gray-500">Pilih foto format JPG, PNG, atau WebP</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <input id="cover-file-input" type="file" accept="image/*" class="hidden" />
+              <button
+                id="btn-upload-cover"
+                type="button"
+                class="px-4 py-2 bg-village-700 hover:bg-village-800 text-white rounded-xl text-xs font-bold transition shadow-xs"
+              >
+                Unggah Foto Utama
+              </button>
+              <button
+                id="btn-remove-cover"
+                type="button"
+                class="px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-xl text-xs font-semibold transition hidden"
+              >
+                Hapus Foto
+              </button>
+            </div>
+            <input id="cover-url-hidden" type="hidden" />
+            <input id="cover-publicid-hidden" type="hidden" />
+          </div>
+
+          <!-- Galeri Foto Tambahan -->
+          <div class="space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">
+              Galeri Tambahan (Opsional)
+            </label>
+            <div id="gallery-container" class="grid grid-cols-3 gap-2 min-h-[140px] p-3 rounded-2xl border border-gray-200 bg-gray-50">
+              <!-- Item galeri dinamis akan disisipkan di sini -->
+            </div>
+            <div>
+              <input id="gallery-file-input" type="file" accept="image/*" multiple class="hidden" />
+              <button
+                id="btn-upload-gallery"
+                type="button"
+                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl text-xs font-semibold transition"
+              >
+                + Tambah Foto ke Galeri
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KELOMPOK 3: DAFTAR PRODUK / MENU -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div class="flex items-center gap-2">
+            <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+              3
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-gray-900">Daftar Produk atau Menu</h2>
+              <p class="text-xs text-gray-500">Tambahkan barang/komoditas yang dijual beserta harganya.</p>
+            </div>
+          </div>
+          <button
+            id="btn-add-product"
+            type="button"
+            class="px-3.5 py-1.5 bg-village-50 hover:bg-village-100 text-village-800 border border-village-200 rounded-xl text-xs font-bold transition flex items-center gap-1"
+          >
+            <span>+ Tambah Produk</span>
+          </button>
+        </div>
+
+        <div id="products-list-container" class="space-y-3">
+          <!-- Item produk dinamis akan ditambahkan di sini -->
+        </div>
+      </section>
+
+      <!-- KELOMPOK 4: KONTAK DAN LOKASI -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+            4
+          </div>
+          <h2 class="text-base font-bold text-gray-900">Kontak WhatsApp & Lokasi Usaha</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Nomor WhatsApp -->
+          <div>
+            <label for="whatsapp" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Nomor WhatsApp <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-3 text-sm text-gray-400 font-bold">+</span>
+              <input
+                id="whatsapp"
+                type="text"
+                required
+                placeholder="628123456789"
+                class="w-full rounded-xl border border-gray-300 p-3 pl-7 text-sm font-mono focus:outline-none focus:border-village-600 shadow-2xs"
+              />
+            </div>
+            <p class="text-[11px] text-gray-500 mt-1">Gunakan format internasional diawali angka 62 (contoh: 628123456789).</p>
+          </div>
+
+          <!-- Jam Operasional -->
+          <div>
+            <label for="openingHours" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Jam Operasional (Opsional)
+            </label>
+            <input
+              id="openingHours"
+              type="text"
+              placeholder="Contoh: Setiap Hari, 08.00 - 17.00 WIB"
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+
+          <!-- Alamat Lengkap -->
+          <div class="sm:col-span-2">
+            <label for="address" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Alamat Lengkap Dusun / RT / RW <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="address"
+              type="text"
+              required
+              placeholder="Contoh: RT 02 / RW 04, Dusun Dadap, Kalurahan Dadapayu"
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+
+          <!-- Link Google Maps -->
+          <div class="sm:col-span-2">
+            <label for="mapsUrl" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Tautan Google Maps Titik Usaha
+            </label>
+            <input
+              id="mapsUrl"
+              type="url"
+              placeholder="https://maps.app.goo.gl/... atau https://maps.google.com/?q=..."
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- KELOMPOK 5: STATUS PUBLIKASI & SIMPAN -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+            5
+          </div>
+          <h2 class="text-base font-bold text-gray-900">Status Publikasi ke Website</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label class="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+            <input type="radio" name="status" value="published" checked class="h-4 w-4 text-village-700 focus:ring-village-500" />
+            <div>
+              <p class="text-xs font-bold text-gray-900">Langsung Terbitkan</p>
+              <p class="text-[11px] text-gray-500">Langsung tampil di katalog publik</p>
+            </div>
+          </label>
+
+          <label class="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+            <input type="radio" name="status" value="draft" class="h-4 w-4 text-amber-600 focus:ring-amber-500" />
+            <div>
+              <p class="text-xs font-bold text-gray-900">Simpan sebagai Konsep</p>
+              <p class="text-[11px] text-gray-500">Disimpan, belum tayang di publik</p>
+            </div>
+          </label>
+
+          <label class="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+            <input type="radio" name="status" value="hidden" class="h-4 w-4 text-gray-600 focus:ring-gray-500" />
+            <div>
+              <p class="text-xs font-bold text-gray-900">Sembunyikan</p>
+              <p class="text-[11px] text-gray-500">Arsip tidak tampil untuk pengunjung</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Tombol Aksi Simpan -->
+        <div class="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+          <a
+            href="/admin/umkm"
+            class="px-5 py-3 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-100 transition"
+          >
+            Batal
+          </a>
+          <button
+            id="btn-submit-form"
+            type="submit"
+            class="px-6 py-3 bg-village-700 hover:bg-village-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2"
+          >
+            <span id="btn-submit-text">Simpan Profil UMKM</span>
+            <svg id="btn-submit-spinner" class="hidden h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+    </form>
+
+  </div>
+
+  <!-- Script Penanganan Form, Cloudinary Upload, dan Simpan ke API -->
+  <script>
+    import { getClientAuth } from '../../../lib/firebase/client';
+
+    const form = document.getElementById('umkm-form') as HTMLFormElement;
+    const nameInput = document.getElementById('name') as HTMLInputElement;
+    const slugInput = document.getElementById('slug') as HTMLInputElement;
+    const alertBox = document.getElementById('form-alert');
+    const submitBtn = document.getElementById('btn-submit-form') as HTMLButtonElement;
+    const submitText = document.getElementById('btn-submit-text');
+    const submitSpinner = document.getElementById('btn-submit-spinner');
+
+    // Auto-generate slug dari nama
+    if (nameInput && slugInput) {
+      nameInput.addEventListener('input', () => {
+        const slug = nameInput.value
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/[\s_-]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        slugInput.value = slug;
+      });
+    }
+
+    // Penanganan Unggah Foto Utama via Cloudinary
+    const btnUploadCover = document.getElementById('btn-upload-cover');
+    const coverFileInput = document.getElementById('cover-file-input') as HTMLInputElement;
+    const coverPreviewImg = document.getElementById('cover-preview-img') as HTMLImageElement;
+    const coverPlaceholder = document.getElementById('cover-placeholder');
+    const coverUrlHidden = document.getElementById('cover-url-hidden') as HTMLInputElement;
+    const coverPublicIdHidden = document.getElementById('cover-publicid-hidden') as HTMLInputElement;
+    const btnRemoveCover = document.getElementById('btn-remove-cover');
+
+    if (btnUploadCover && coverFileInput) {
+      btnUploadCover.addEventListener('click', () => coverFileInput.click());
+
+      coverFileInput.addEventListener('change', async () => {
+        const file = coverFileInput.files?.[0];
+        if (!file) return;
+
+        btnUploadCover.textContent = 'Mengunggah...';
+        btnUploadCover.setAttribute('disabled', 'true');
+
+        try {
+          const auth = getClientAuth();
+          const user = auth.currentUser;
+          if (!user) throw new Error('Silakan login terlebih dahulu.');
+
+          const token = await user.getIdToken();
+
+          // 1. Dapatkan signature terenkripsi dari serverless endpoint
+          const signRes = await fetch('/api/cloudinary/sign', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ folder: 'umkm-dadapayu' }),
+          });
+
+          if (!signRes.ok) {
+            const err = await signRes.json();
+            throw new Error(err.details || err.error || 'Gagal membuat tanda tangan unggah.');
+          }
+
+          const signData = await signRes.json();
+
+          // 2. Unggah langsung ke CDN Cloudinary
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('api_key', signData.apiKey);
+          formData.append('timestamp', signData.timestamp.toString());
+          formData.append('signature', signData.signature);
+          formData.append('folder', signData.folder);
+
+          const uploadRes = await fetch(
+            `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`,
+            {
+              method: 'POST',
+              body: formData,
+            }
+          );
+
+          if (!uploadRes.ok) {
+            throw new Error('Gagal mengunggah foto ke Cloudinary.');
+          }
+
+          const uploadData = await uploadRes.json();
+          coverUrlHidden.value = uploadData.secure_url;
+          coverPublicIdHidden.value = uploadData.public_id;
+
+          if (coverPreviewImg) {
+            coverPreviewImg.src = uploadData.secure_url;
+            coverPreviewImg.classList.remove('hidden');
+          }
+          if (coverPlaceholder) coverPlaceholder.classList.add('hidden');
+          if (btnRemoveCover) btnRemoveCover.classList.remove('hidden');
+        } catch (err: any) {
+          alert(`Error Unggah Foto: ${err.message}`);
+        } finally {
+          btnUploadCover.textContent = 'Ganti Foto Utama';
+          btnUploadCover.removeAttribute('disabled');
+        }
+      });
+    }
+
+    if (btnRemoveCover) {
+      btnRemoveCover.addEventListener('click', () => {
+        coverUrlHidden.value = '';
+        coverPublicIdHidden.value = '';
+        if (coverPreviewImg) {
+          coverPreviewImg.src = '';
+          coverPreviewImg.classList.add('hidden');
+        }
+        if (coverPlaceholder) coverPlaceholder.classList.remove('hidden');
+        btnRemoveCover.classList.add('hidden');
+        if (btnUploadCover) btnUploadCover.textContent = 'Unggah Foto Utama';
+      });
+    }
+
+    // Penanganan Galeri Tambahan
+    const galleryItems: Array<{ publicId: string; url: string }> = [];
+    const btnUploadGallery = document.getElementById('btn-upload-gallery');
+    const galleryFileInput = document.getElementById('gallery-file-input') as HTMLInputElement;
+    const galleryContainer = document.getElementById('gallery-container');
+
+    function renderGallery() {
+      if (!galleryContainer) return;
+      galleryContainer.innerHTML = '';
+      if (galleryItems.length === 0) {
+        galleryContainer.innerHTML = '<p class="col-span-3 text-center text-xs text-gray-400 py-6">Belum ada foto tambahan di galeri.</p>';
+        return;
+      }
+
+      galleryItems.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'relative aspect-square rounded-xl overflow-hidden bg-gray-100 group';
+        div.innerHTML = `
+          <img src="${item.url}" class="h-full w-full object-cover" />
+          <button type="button" class="remove-gallery-item absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-80 hover:opacity-100 shadow-xs" data-index="${idx}">
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        `;
+        galleryContainer.appendChild(div);
+      });
+
+      document.querySelectorAll('.remove-gallery-item').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const target = e.currentTarget as HTMLElement;
+          const index = parseInt(target.dataset.index || '0', 10);
+          galleryItems.splice(index, 1);
+          renderGallery();
+        });
+      });
+    }
+    renderGallery();
+
+    if (btnUploadGallery && galleryFileInput) {
+      btnUploadGallery.addEventListener('click', () => galleryFileInput.click());
+
+      galleryFileInput.addEventListener('change', async () => {
+        const files = Array.from(galleryFileInput.files || []);
+        if (files.length === 0) return;
+
+        btnUploadGallery.textContent = 'Mengunggah Foto...';
+        btnUploadGallery.setAttribute('disabled', 'true');
+
+        try {
+          const auth = getClientAuth();
+          const user = auth.currentUser;
+          if (!user) throw new Error('Silakan login terlebih dahulu.');
+          const token = await user.getIdToken();
+
+          const signRes = await fetch('/api/cloudinary/sign', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ folder: 'umkm-dadapayu' }),
+          });
+          const signData = await signRes.json();
+
+          for (const file of files) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('api_key', signData.apiKey);
+            formData.append('timestamp', signData.timestamp.toString());
+            formData.append('signature', signData.signature);
+            formData.append('folder', signData.folder);
+
+            const uploadRes = await fetch(
+              `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`,
+              { method: 'POST', body: formData }
+            );
+
+            if (uploadRes.ok) {
+              const uploadData = await uploadRes.json();
+              galleryItems.push({
+                publicId: uploadData.public_id,
+                url: uploadData.secure_url,
+              });
+            }
+          }
+          renderGallery();
+        } catch (err: any) {
+          alert(`Gagal unggah foto galeri: ${err.message}`);
+        } finally {
+          btnUploadGallery.textContent = '+ Tambah Foto ke Galeri';
+          btnUploadGallery.removeAttribute('disabled');
+        }
+      });
+    }
+
+    // Penanganan Daftar Produk Dinamis
+    const productsContainer = document.getElementById('products-list-container');
+    const btnAddProduct = document.getElementById('btn-add-product');
+    let productIndex = 0;
+
+    function addProductRow() {
+      if (!productsContainer) return;
+      const id = `prod_${Date.now()}_${productIndex++}`;
+      const div = document.createElement('div');
+      div.className = 'product-row p-4 rounded-2xl border border-gray-200 bg-gray-50/60 space-y-3';
+      div.dataset.productId = id;
+      div.innerHTML = `
+        <div class="flex items-center justify-between pb-2 border-b border-gray-200">
+          <span class="text-xs font-bold text-gray-700">Item Produk</span>
+          <button type="button" class="remove-product-row text-xs font-semibold text-red-600 hover:underline">
+            Hapus Produk Ini
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <input type="text" placeholder="Nama Produk (misal: Tiwul Instan 500gr)" class="prod-name w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" required />
+          </div>
+          <div>
+            <input type="number" placeholder="Harga (Rp) opsional" class="prod-price w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" />
+          </div>
+          <div class="sm:col-span-3">
+            <input type="text" placeholder="Keterangan singkat produk (opsional)" class="prod-desc w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" />
+          </div>
+        </div>
+      `;
+
+      productsContainer.appendChild(div);
+
+      div.querySelector('.remove-product-row')?.addEventListener('click', () => {
+        div.remove();
+      });
+    }
+
+    if (btnAddProduct) {
+      btnAddProduct.addEventListener('click', addProductRow);
+    }
+
+    // Submit Formulir Lengkap
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (alertBox) alertBox.classList.add('hidden');
+        if (submitBtn) submitBtn.disabled = true;
+        if (submitText) submitText.textContent = 'Menyimpan ke Database...';
+        if (submitSpinner) submitSpinner.classList.remove('hidden');
+
+        try {
+          const auth = getClientAuth();
+          const user = auth.currentUser;
+          if (!user) {
+            throw new Error('Sesi autentikasi telah berakhir. Silakan login kembali.');
+          }
+
+          const token = await user.getIdToken();
+
+          // Kumpulkan produk dari form
+          const productRows = document.querySelectorAll<HTMLElement>('.product-row');
+          const products = Array.from(productRows).map((row) => {
+            const pName = (row.querySelector('.prod-name') as HTMLInputElement)?.value || '';
+            const pPrice = parseInt((row.querySelector('.prod-price') as HTMLInputElement)?.value || '0', 10);
+            const pDesc = (row.querySelector('.prod-desc') as HTMLInputElement)?.value || '';
+            return {
+              id: row.dataset.productId || `prod_${Date.now()}`,
+              name: pName,
+              price: isNaN(pPrice) ? undefined : pPrice,
+              description: pDesc || undefined,
+            };
+          });
+
+          // Ambil status radio
+          const statusRadio = document.querySelector('input[name="status"]:checked') as HTMLInputElement;
+          const status = statusRadio ? statusRadio.value : 'published';
+
+          const coverUrl = coverUrlHidden.value || '/images/placeholder-umkm.jpg';
+          const coverPublicId = coverPublicIdHidden.value || '';
+
+          const payload = {
+            name: nameInput.value.trim(),
+            slug: slugInput.value.trim(),
+            categoryId: (document.getElementById('categoryId') as HTMLSelectElement).value,
+            shortDescription: (document.getElementById('shortDescription') as HTMLInputElement).value.trim(),
+            description: (document.getElementById('description') as HTMLTextAreaElement).value.trim(),
+            coverImage: {
+              publicId: coverPublicId,
+              url: coverUrl,
+            },
+            gallery: galleryItems,
+            whatsapp: (document.getElementById('whatsapp') as HTMLInputElement).value.trim(),
+            address: (document.getElementById('address') as HTMLInputElement).value.trim(),
+            mapsUrl: (document.getElementById('mapsUrl') as HTMLInputElement).value.trim(),
+            openingHours: (document.getElementById('openingHours') as HTMLInputElement).value.trim(),
+            products,
+            status,
+          };
+
+          const res = await fetch('/api/admin/umkm', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const result = await res.json();
+
+          if (!res.ok) {
+            throw new Error(result.error || result.details || 'Gagal menyimpan data.');
+          }
+
+          if (alertBox) {
+            alertBox.className = 'rounded-2xl p-4 text-xs font-semibold leading-relaxed bg-emerald-50 text-emerald-800 border border-emerald-200';
+            alertBox.textContent = 'Profil UMKM berhasil disimpan! Mengalihkan ke daftar UMKM...';
+            alertBox.classList.remove('hidden');
+          }
+
+          setTimeout(() => {
+            window.location.href = '/admin/umkm';
+          }, 1200);
+        } catch (err: any) {
+          if (alertBox) {
+            alertBox.className = 'rounded-2xl p-4 text-xs font-semibold leading-relaxed bg-red-50 text-red-800 border border-red-200';
+            alertBox.textContent = `Gagal menyimpan: ${err.message}`;
+            alertBox.classList.remove('hidden');
+          }
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+          if (submitText) submitText.textContent = 'Simpan Profil UMKM';
+          if (submitSpinner) submitSpinner.classList.add('hidden');
+        }
+      });
+    }
+  </script>
+</AdminLayout>

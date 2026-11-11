@@ -1,0 +1,302 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { fetchAdminUMKM } from '../../../lib/services/umkmService';
+import { fetchCategories } from '../../../lib/services/categoryService';
+
+const allUMKM = await fetchAdminUMKM(Astro.request);
+const categories = await fetchCategories();
+---
+
+<AdminLayout title="Kelola UMKM" activeNav="umkm">
+  <div class="space-y-6">
+    
+    <!-- Header Halaman -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+          Kelola Profil UMKM
+        </h1>
+        <p class="text-xs sm:text-sm text-gray-600 mt-1">
+          Tambah usaha baru, ubah rincian produk, atau perbarui kontak WhatsApp pemilik.
+        </p>
+      </div>
+
+      <a
+        href="/admin/umkm/tambah"
+        class="inline-flex items-center gap-2 bg-village-700 hover:bg-village-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition"
+      >
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Tambah UMKM Baru</span>
+      </a>
+    </div>
+
+    <!-- Filter & Pencarian Cepat di Panel Admin -->
+    <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-2xs flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div class="relative w-full sm:w-80">
+        <input
+          id="admin-search-input"
+          type="text"
+          placeholder="Cari nama usaha atau pemilik..."
+          class="w-full rounded-xl border border-gray-300 py-2 pl-9 pr-3 text-xs sm:text-sm text-gray-900 focus:outline-none focus:border-village-600 shadow-2xs"
+        />
+        <svg class="h-4 w-4 text-gray-400 absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+        <button
+          type="button"
+          class="filter-status-btn active px-3 py-1.5 rounded-lg text-xs font-semibold bg-village-700 text-white"
+          data-status="all"
+        >
+          Semua ({allUMKM.length})
+        </button>
+        <button
+          type="button"
+          class="filter-status-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+          data-status="published"
+        >
+          Terbit
+        </button>
+        <button
+          type="button"
+          class="filter-status-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+          data-status="draft"
+        >
+          Konsep
+        </button>
+        <button
+          type="button"
+          class="filter-status-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+          data-status="hidden"
+        >
+          Disembunyikan
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabel Daftar UMKM -->
+    <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs sm:text-sm">
+          <thead>
+            <tr class="border-b border-gray-200 bg-gray-50/70 text-gray-600 text-[11px] uppercase tracking-wider">
+              <th class="py-3.5 px-4 font-bold">Profil Usaha</th>
+              <th class="py-3.5 px-4 font-bold">Kategori</th>
+              <th class="py-3.5 px-4 font-bold">Kontak WA</th>
+              <th class="py-3.5 px-4 font-bold">Status</th>
+              <th class="py-3.5 px-4 font-bold text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="umkm-table-body" class="divide-y divide-gray-100">
+            {allUMKM.map((umkm) => {
+              const cat = categories.find((c) => c.id === umkm.categoryId);
+              return (
+                <tr class="umkm-row hover:bg-gray-50/60 transition" data-name={umkm.name.toLowerCase()} data-status={umkm.status}>
+                  <td class="py-3.5 px-4">
+                    <div class="flex items-center gap-3">
+                      <img
+                        src={umkm.coverImage?.url || '/images/placeholder-umkm.jpg'}
+                        alt={umkm.name}
+                        class="h-12 w-12 rounded-xl object-cover bg-gray-100 shrink-0"
+                      />
+                      <div>
+                        <p class="font-bold text-gray-900">{umkm.name}</p>
+                        <p class="text-xs text-gray-500 line-clamp-1">{umkm.address}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3.5 px-4 text-gray-600 font-medium">
+                    {cat ? cat.name : 'Umum'}
+                  </td>
+                  <td class="py-3.5 px-4 text-gray-600 font-mono text-xs">
+                    +{umkm.whatsapp}
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <span class:list={[
+                      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                      umkm.status === 'published'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : umkm.status === 'draft'
+                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                        : 'bg-gray-100 text-gray-700 border border-gray-200',
+                    ]}>
+                      {umkm.status === 'published' ? 'Terbit' : umkm.status === 'draft' ? 'Konsep' : 'Disembunyikan'}
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-4 text-right">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <a
+                        href={`/umkm/${umkm.slug}`}
+                        target="_blank"
+                        class="p-1.5 text-gray-500 hover:text-village-700 hover:bg-village-50 rounded-lg transition"
+                        title="Pratinjau Halaman"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </a>
+                      <a
+                        href={`/admin/umkm/edit/${umkm.id}`}
+                        class="inline-flex items-center px-3 py-1 bg-village-50 text-village-800 hover:bg-village-700 hover:text-white rounded-lg text-xs font-semibold transition"
+                      >
+                        Edit
+                      </a>
+                      <button
+                        type="button"
+                        class="delete-umkm-btn p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                        data-id={umkm.id}
+                        data-name={umkm.name}
+                        title="Hapus Usaha Ini"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal Konfirmasi Hapus UMKM -->
+  <div id="delete-modal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-gray-100">
+      <div class="h-12 w-12 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-gray-900">Konfirmasi Hapus UMKM</h3>
+        <p class="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">
+          Apakah Anda yakin ingin menghapus data usaha <span id="delete-modal-name" class="font-bold text-gray-900"></span>? Tindakan ini tidak dapat dibatalkan.
+        </p>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button
+          id="delete-modal-cancel"
+          type="button"
+          class="px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-xl transition"
+        >
+          Batal
+        </button>
+        <button
+          id="delete-modal-confirm"
+          type="button"
+          class="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-xs"
+        >
+          Ya, Hapus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Interaksi Tabel & Hapus Client -->
+  <script>
+    import { getClientAuth } from '../../../lib/firebase/client';
+
+    const searchInput = document.getElementById('admin-search-input') as HTMLInputElement | null;
+    const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-status-btn');
+    const rows = document.querySelectorAll<HTMLElement>('.umkm-row');
+    const deleteBtns = document.querySelectorAll<HTMLButtonElement>('.delete-umkm-btn');
+    const modal = document.getElementById('delete-modal');
+    const modalName = document.getElementById('delete-modal-name');
+    const modalCancel = document.getElementById('delete-modal-cancel');
+    const modalConfirm = document.getElementById('delete-modal-confirm');
+
+    let selectedDeleteId: string | null = null;
+    let currentFilterStatus = 'all';
+
+    function applyFilter() {
+      const term = searchInput?.value.toLowerCase().trim() || '';
+      rows.forEach((row) => {
+        const name = row.dataset.name || '';
+        const status = row.dataset.status || '';
+        const matchesSearch = name.includes(term);
+        const matchesStatus = currentFilterStatus === 'all' || status === currentFilterStatus;
+        row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+      });
+    }
+
+    if (searchInput) searchInput.addEventListener('input', applyFilter);
+
+    filterBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach((b) => {
+          b.classList.remove('bg-village-700', 'text-white');
+          b.classList.add('bg-gray-100', 'text-gray-700');
+        });
+        btn.classList.add('bg-village-700', 'text-white');
+        btn.classList.remove('bg-gray-100', 'text-gray-700');
+        currentFilterStatus = btn.dataset.status || 'all';
+        applyFilter();
+      });
+    });
+
+    deleteBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedDeleteId = btn.dataset.id || null;
+        if (modalName) modalName.textContent = `"${btn.dataset.name || ''}"`;
+        if (modal) modal.classList.remove('hidden');
+      });
+    });
+
+    if (modalCancel && modal) {
+      modalCancel.addEventListener('click', () => modal.classList.add('hidden'));
+    }
+
+    if (modalConfirm) {
+      modalConfirm.addEventListener('click', async () => {
+        if (!selectedDeleteId) return;
+        const auth = getClientAuth();
+        const user = auth.currentUser;
+        if (!user) {
+          alert('Sesi admin berakhir. Silakan login kembali.');
+          window.location.href = '/admin/login';
+          return;
+        }
+
+        modalConfirm.textContent = 'Menghapus...';
+        const token = await user.getIdToken();
+
+        try {
+          const res = await fetch('/api/admin/umkm', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ id: selectedDeleteId }),
+          });
+
+          const result = await res.json();
+          if (res.status === 207) {
+            alert(`Data UMKM terhapus, tetapi foto berikut perlu dibersihkan di Cloudinary: ${(result.orphanedAssets || []).join(', ')}`);
+            window.location.reload();
+          } else if (res.ok) {
+            window.location.reload();
+          } else {
+            const err = result;
+            alert(`Gagal menghapus: ${err.error || 'Terjadi kesalahan'}`);
+          }
+        } catch (e: any) {
+          alert(`Gagal: ${e.message}`);
+        } finally {
+          modalConfirm.textContent = 'Ya, Hapus';
+          if (modal) modal.classList.add('hidden');
+        }
+      });
+    }
+  </script>
+</AdminLayout>

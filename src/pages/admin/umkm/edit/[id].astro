@@ -1,0 +1,688 @@
+---
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { fetchCategories } from '../../../../lib/services/categoryService';
+import { firestoreData, firestoreGet } from '../../../../lib/firebase/firestoreRest';
+import { verifyAdminSession } from '../../../../lib/firebase/verifyAdmin';
+import { getDemoUMKM } from '../../../../lib/dev/demoStore';
+import { mockUMKMList } from '../../../../data/mockData';
+import type { UMKM } from '../../../../types';
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/admin/umkm');
+}
+
+const categories = await fetchCategories();
+
+// Fetch UMKM menggunakan Firebase ID Token dari sesi yang diverifikasi server.
+let umkmData: UMKM | null = null;
+try {
+  if (import.meta.env.DEV) {
+    umkmData = getDemoUMKM(id);
+  } else {
+    const admin = await verifyAdminSession(Astro.request);
+    if (!admin.verified) throw new Error('Sesi admin tidak valid.');
+    const d = firestoreData(await firestoreGet(Astro.request, admin, 'umkms', id));
+    umkmData = {
+      id, name: d.name || '', slug: d.slug || id, categoryId: d.categoryId || '', shortDescription: d.shortDescription || '',
+      description: d.description || '', coverImage: d.coverImage || { publicId: '', url: '/images/placeholder-umkm.jpg' },
+      gallery: Array.isArray(d.gallery) ? d.gallery : [], address: d.address || '', mapsUrl: d.mapsUrl || '',
+      whatsapp: d.whatsapp || '', openingHours: d.openingHours || '', products: Array.isArray(d.products) ? d.products : [],
+      status: d.status || 'published', createdAt: d.createdAt || '', updatedAt: d.updatedAt || '',
+    };
+  }
+} catch (e) {
+  console.error('Error fetching UMKM by ID:', e);
+}
+
+// Fallback jika di development mode
+if (!umkmData && import.meta.env.DEV) {
+  const found = mockUMKMList.find((u) => u.id === id || u.slug === id);
+  if (found) umkmData = found;
+}
+
+if (!umkmData) {
+  return Astro.redirect('/admin/umkm');
+}
+---
+
+<AdminLayout title={`Edit UMKM: ${umkmData.name}`} activeNav="umkm">
+  <div class="max-w-4xl mx-auto space-y-6">
+    
+    <!-- Header Form -->
+    <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+      <div>
+        <a href="/admin/umkm" class="text-xs font-semibold text-village-700 hover:underline flex items-center gap-1 mb-1">
+          ← Kembali ke Daftar UMKM
+        </a>
+        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">
+          Perbarui Profil: {umkmData.name}
+        </h1>
+        <p class="text-xs text-gray-500 mt-0.5">
+          ID Dokumen: <span class="font-mono">{umkmData.id}</span>
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a
+          href={`/umkm/${umkmData.slug}`}
+          target="_blank"
+          class="px-3.5 py-2 rounded-xl text-xs font-bold text-village-800 bg-village-50 border border-village-200 hover:bg-village-100 transition flex items-center gap-1"
+        >
+          <span>Pratinjau Halaman</span>
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Kotak Notifikasi / Error -->
+    <div id="form-alert" class="hidden rounded-2xl p-4 text-xs font-medium leading-relaxed"></div>
+
+    <form id="edit-umkm-form" class="space-y-8" data-id={umkmData.id}>
+      
+      <!-- KELOMPOK 1: INFORMASI USAHA -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+            1
+          </div>
+          <h2 class="text-base font-bold text-gray-900">Informasi Pokok Usaha</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label for="name" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Nama UMKM / Usaha <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="name"
+              type="text"
+              required
+              value={umkmData.name}
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+
+          <div>
+            <label for="categoryId" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Kategori Usaha <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="categoryId"
+              required
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs bg-white"
+            >
+              {categories.map((c) => (
+                <option value={c.id} selected={c.id === umkmData?.categoryId}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label for="slug" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Tautan URL (Slug) <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="slug"
+              type="text"
+              required
+              value={umkmData.slug}
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm font-mono text-xs focus:outline-none focus:border-village-600 shadow-2xs bg-gray-50"
+            />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="shortDescription" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Deskripsi Singkat (1-2 Kalimat) <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="shortDescription"
+              type="text"
+              required
+              maxlength="200"
+              value={umkmData.shortDescription}
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="description" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Cerita & Penjelasan Lengkap Usaha
+            </label>
+            <textarea
+              id="description"
+              rows="4"
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            >{umkmData.description}</textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- KELOMPOK 2: FOTO & GALERI -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+            2
+          </div>
+          <h2 class="text-base font-bold text-gray-900">Foto Utama & Galeri</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div class="space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">Foto Utama</label>
+            <div class="aspect-16/10 rounded-2xl border border-gray-200 overflow-hidden bg-gray-50 relative">
+              <img
+                id="cover-preview-img"
+                src={umkmData.coverImage?.url || '/images/placeholder-umkm.jpg'}
+                alt="Foto Utama"
+                class="h-full w-full object-cover"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <input id="cover-file-input" type="file" accept="image/*" class="hidden" />
+              <button
+                id="btn-upload-cover"
+                type="button"
+                class="px-4 py-2 bg-village-700 hover:bg-village-800 text-white rounded-xl text-xs font-bold transition shadow-xs"
+              >
+                Ganti Foto Utama
+              </button>
+            </div>
+            <input id="cover-url-hidden" type="hidden" value={umkmData.coverImage?.url || ''} />
+            <input id="cover-publicid-hidden" type="hidden" value={umkmData.coverImage?.publicId || ''} />
+          </div>
+
+          <div class="space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">Galeri Tambahan</label>
+            <div id="gallery-container" class="grid grid-cols-3 gap-2 min-h-[140px] p-3 rounded-2xl border border-gray-200 bg-gray-50">
+              <!-- Galeri dirender via JavaScript -->
+            </div>
+            <div>
+              <input id="gallery-file-input" type="file" accept="image/*" multiple class="hidden" />
+              <button
+                id="btn-upload-gallery"
+                type="button"
+                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl text-xs font-semibold transition"
+              >
+                + Tambah Foto ke Galeri
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KELOMPOK 3: DAFTAR PRODUK -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div class="flex items-center gap-2">
+            <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+              3
+            </div>
+            <h2 class="text-base font-bold text-gray-900">Daftar Produk / Menu</h2>
+          </div>
+          <button
+            id="btn-add-product"
+            type="button"
+            class="px-3.5 py-1.5 bg-village-50 hover:bg-village-100 text-village-800 border border-village-200 rounded-xl text-xs font-bold transition flex items-center gap-1"
+          >
+            <span>+ Tambah Produk</span>
+          </button>
+        </div>
+
+        <div id="products-list-container" class="space-y-3">
+          <!-- Item produk awal akan dirender dari data umkmData -->
+          {umkmData.products.map((prod) => (
+            <div class="product-row p-4 rounded-2xl border border-gray-200 bg-gray-50/60 space-y-3" data-product-id={prod.id}>
+              <div class="flex items-center justify-between pb-2 border-b border-gray-200">
+                <span class="text-xs font-bold text-gray-700">Item Produk</span>
+                <button type="button" class="remove-product-row text-xs font-semibold text-red-600 hover:underline">
+                  Hapus Produk Ini
+                </button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="sm:col-span-2">
+                  <input type="text" placeholder="Nama Produk" value={prod.name} class="prod-name w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" required />
+                </div>
+                <div>
+                  <input type="number" placeholder="Harga (Rp)" value={prod.price || ''} class="prod-price w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" />
+                </div>
+                <div class="sm:col-span-3">
+                  <input type="text" placeholder="Keterangan singkat" value={prod.description || ''} class="prod-desc w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- KELOMPOK 4: KONTAK DAN LOKASI -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+            4
+          </div>
+          <h2 class="text-base font-bold text-gray-900">Kontak WhatsApp & Lokasi</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="whatsapp" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Nomor WhatsApp <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-3 text-sm text-gray-400 font-bold">+</span>
+              <input
+                id="whatsapp"
+                type="text"
+                required
+                value={umkmData.whatsapp}
+                class="w-full rounded-xl border border-gray-300 p-3 pl-7 text-sm font-mono focus:outline-none focus:border-village-600 shadow-2xs"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="openingHours" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Jam Operasional
+            </label>
+            <input
+              id="openingHours"
+              type="text"
+              value={umkmData.openingHours || ''}
+              placeholder="Setiap Hari, 08.00 - 17.00 WIB"
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="address" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Alamat Lengkap <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="address"
+              type="text"
+              required
+              value={umkmData.address}
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="mapsUrl" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+              Tautan Google Maps
+            </label>
+            <input
+              id="mapsUrl"
+              type="url"
+              value={umkmData.mapsUrl}
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- KELOMPOK 5: STATUS PUBLIKASI & SIMPAN PERUBAHAN -->
+      <section class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-2xs space-y-5">
+        <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <div class="h-7 w-7 rounded-lg bg-village-100 text-village-800 flex items-center justify-center font-bold text-xs">
+            5
+          </div>
+          <h2 class="text-base font-bold text-gray-900">Status Publikasi</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label class="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+            <input type="radio" name="status" value="published" checked={umkmData.status === 'published'} class="h-4 w-4 text-village-700 focus:ring-village-500" />
+            <div>
+              <p class="text-xs font-bold text-gray-900">Terbitkan</p>
+              <p class="text-[11px] text-gray-500">Tampil di katalog publik</p>
+            </div>
+          </label>
+
+          <label class="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+            <input type="radio" name="status" value="draft" checked={umkmData.status === 'draft'} class="h-4 w-4 text-amber-600 focus:ring-amber-500" />
+            <div>
+              <p class="text-xs font-bold text-gray-900">Simpan sebagai Konsep</p>
+              <p class="text-[11px] text-gray-500">Belum tayang di publik</p>
+            </div>
+          </label>
+
+          <label class="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition">
+            <input type="radio" name="status" value="hidden" checked={umkmData.status === 'hidden'} class="h-4 w-4 text-gray-600 focus:ring-gray-500" />
+            <div>
+              <p class="text-xs font-bold text-gray-900">Sembunyikan</p>
+              <p class="text-[11px] text-gray-500">Arsip tersembunyi</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Tombol Aksi Simpan -->
+        <div class="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+          <a
+            href="/admin/umkm"
+            class="px-5 py-3 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-100 transition"
+          >
+            Batal
+          </a>
+          <button
+            id="btn-submit-form"
+            type="submit"
+            class="px-6 py-3 bg-village-700 hover:bg-village-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2"
+          >
+            <span id="btn-submit-text">Simpan Perubahan</span>
+            <svg id="btn-submit-spinner" class="hidden h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+    </form>
+
+  </div>
+
+  <script define:vars={{ initialGallery: umkmData.gallery || [] }}>
+    window.__INITIAL_GALLERY__ = initialGallery;
+  </script>
+
+  <!-- Script Penanganan Update Client -->
+  <script>
+    import { getClientAuth } from '../../../../lib/firebase/client';
+
+    const form = document.getElementById('edit-umkm-form') as HTMLFormElement;
+    const umkmId = form?.dataset.id;
+    const nameInput = document.getElementById('name') as HTMLInputElement;
+    const slugInput = document.getElementById('slug') as HTMLInputElement;
+    const alertBox = document.getElementById('form-alert');
+    const submitBtn = document.getElementById('btn-submit-form') as HTMLButtonElement;
+    const submitText = document.getElementById('btn-submit-text');
+    const submitSpinner = document.getElementById('btn-submit-spinner');
+
+    const coverFileInput = document.getElementById('cover-file-input') as HTMLInputElement;
+    const btnUploadCover = document.getElementById('btn-upload-cover');
+    const coverPreviewImg = document.getElementById('cover-preview-img') as HTMLImageElement;
+    const coverUrlHidden = document.getElementById('cover-url-hidden') as HTMLInputElement;
+    const coverPublicIdHidden = document.getElementById('cover-publicid-hidden') as HTMLInputElement;
+
+    // Unggah foto cover baru
+    if (btnUploadCover && coverFileInput) {
+      btnUploadCover.addEventListener('click', () => coverFileInput.click());
+
+      coverFileInput.addEventListener('change', async () => {
+        const file = coverFileInput.files?.[0];
+        if (!file) return;
+
+        btnUploadCover.textContent = 'Mengunggah...';
+        btnUploadCover.setAttribute('disabled', 'true');
+
+        try {
+          const auth = getClientAuth();
+          const user = auth.currentUser;
+          if (!user) throw new Error('Silakan login terlebih dahulu.');
+
+          const token = await user.getIdToken();
+
+          const signRes = await fetch('/api/cloudinary/sign', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ folder: 'umkm-dadapayu' }),
+          });
+
+          const signData = await signRes.json();
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('api_key', signData.apiKey);
+          formData.append('timestamp', signData.timestamp.toString());
+          formData.append('signature', signData.signature);
+          formData.append('folder', signData.folder);
+
+          const uploadRes = await fetch(
+            `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`,
+            { method: 'POST', body: formData }
+          );
+
+          const uploadData = await uploadRes.json();
+          coverUrlHidden.value = uploadData.secure_url;
+          coverPublicIdHidden.value = uploadData.public_id;
+          if (coverPreviewImg) coverPreviewImg.src = uploadData.secure_url;
+        } catch (err: any) {
+          alert(`Gagal unggah foto: ${err.message}`);
+        } finally {
+          btnUploadCover.textContent = 'Ganti Foto Utama';
+          btnUploadCover.removeAttribute('disabled');
+        }
+      });
+    }
+
+    // Galeri
+    const galleryItems: Array<{ publicId: string; url: string }> = (window as any).__INITIAL_GALLERY__ || [];
+    const btnUploadGallery = document.getElementById('btn-upload-gallery');
+    const galleryFileInput = document.getElementById('gallery-file-input') as HTMLInputElement;
+    const galleryContainer = document.getElementById('gallery-container');
+
+    function renderGallery() {
+      if (!galleryContainer) return;
+      galleryContainer.innerHTML = '';
+      if (galleryItems.length === 0) {
+        galleryContainer.innerHTML = '<p class="col-span-3 text-center text-xs text-gray-400 py-6">Belum ada foto galeri.</p>';
+        return;
+      }
+
+      galleryItems.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'relative aspect-square rounded-xl overflow-hidden bg-gray-100 group';
+        div.innerHTML = `
+          <img src="${item.url}" class="h-full w-full object-cover" />
+          <button type="button" class="remove-gallery-item absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-80 hover:opacity-100 shadow-xs" data-index="${idx}">
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        `;
+        galleryContainer.appendChild(div);
+      });
+
+      document.querySelectorAll('.remove-gallery-item').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const target = e.currentTarget as HTMLElement;
+          const index = parseInt(target.dataset.index || '0', 10);
+          galleryItems.splice(index, 1);
+          renderGallery();
+        });
+      });
+    }
+    renderGallery();
+
+    if (btnUploadGallery && galleryFileInput) {
+      btnUploadGallery.addEventListener('click', () => galleryFileInput.click());
+
+      galleryFileInput.addEventListener('change', async () => {
+        const files = Array.from(galleryFileInput.files || []);
+        if (files.length === 0) return;
+
+        btnUploadGallery.textContent = 'Mengunggah Foto...';
+        btnUploadGallery.setAttribute('disabled', 'true');
+
+        try {
+          const auth = getClientAuth();
+          const user = auth.currentUser;
+          if (!user) throw new Error('Silakan login terlebih dahulu.');
+          const token = await user.getIdToken();
+
+          const signRes = await fetch('/api/cloudinary/sign', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ folder: 'umkm-dadapayu' }),
+          });
+          const signData = await signRes.json();
+
+          for (const file of files) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('api_key', signData.apiKey);
+            formData.append('timestamp', signData.timestamp.toString());
+            formData.append('signature', signData.signature);
+            formData.append('folder', signData.folder);
+
+            const uploadRes = await fetch(
+              `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`,
+              { method: 'POST', body: formData }
+            );
+
+            if (uploadRes.ok) {
+              const uploadData = await uploadRes.json();
+              galleryItems.push({
+                publicId: uploadData.public_id,
+                url: uploadData.secure_url,
+              });
+            }
+          }
+          renderGallery();
+        } catch (err: any) {
+          alert(`Gagal unggah foto galeri: ${err.message}`);
+        } finally {
+          btnUploadGallery.textContent = '+ Tambah Foto ke Galeri';
+          btnUploadGallery.removeAttribute('disabled');
+        }
+      });
+    }
+
+    // Produk
+    const productsContainer = document.getElementById('products-list-container');
+    const btnAddProduct = document.getElementById('btn-add-product');
+
+    function attachRemoveProductListeners() {
+      document.querySelectorAll('.remove-product-row').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          (e.currentTarget as HTMLElement).closest('.product-row')?.remove();
+        });
+      });
+    }
+    attachRemoveProductListeners();
+
+    if (btnAddProduct && productsContainer) {
+      btnAddProduct.addEventListener('click', () => {
+        const id = `prod_${Date.now()}`;
+        const div = document.createElement('div');
+        div.className = 'product-row p-4 rounded-2xl border border-gray-200 bg-gray-50/60 space-y-3';
+        div.dataset.productId = id;
+        div.innerHTML = `
+          <div class="flex items-center justify-between pb-2 border-b border-gray-200">
+            <span class="text-xs font-bold text-gray-700">Item Produk</span>
+            <button type="button" class="remove-product-row text-xs font-semibold text-red-600 hover:underline">
+              Hapus Produk Ini
+            </button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <input type="text" placeholder="Nama Produk" class="prod-name w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" required />
+            </div>
+            <div>
+              <input type="number" placeholder="Harga (Rp)" class="prod-price w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" />
+            </div>
+            <div class="sm:col-span-3">
+              <input type="text" placeholder="Keterangan singkat" class="prod-desc w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" />
+            </div>
+          </div>
+        `;
+        productsContainer.appendChild(div);
+        attachRemoveProductListeners();
+      });
+    }
+
+    // Submit Update
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (alertBox) alertBox.classList.add('hidden');
+        if (submitBtn) submitBtn.disabled = true;
+        if (submitText) submitText.textContent = 'Menyimpan Perubahan...';
+        if (submitSpinner) submitSpinner.classList.remove('hidden');
+
+        try {
+          const auth = getClientAuth();
+          const user = auth.currentUser;
+          if (!user) throw new Error('Sesi telah berakhir. Silakan login kembali.');
+          const token = await user.getIdToken();
+
+          const productRows = document.querySelectorAll<HTMLElement>('.product-row');
+          const products = Array.from(productRows).map((row) => {
+            const pName = (row.querySelector('.prod-name') as HTMLInputElement)?.value || '';
+            const pPrice = parseInt((row.querySelector('.prod-price') as HTMLInputElement)?.value || '0', 10);
+            const pDesc = (row.querySelector('.prod-desc') as HTMLInputElement)?.value || '';
+            return {
+              id: row.dataset.productId || `prod_${Date.now()}`,
+              name: pName,
+              price: isNaN(pPrice) ? undefined : pPrice,
+              description: pDesc || undefined,
+            };
+          });
+
+          const statusRadio = document.querySelector('input[name="status"]:checked') as HTMLInputElement;
+          const status = statusRadio ? statusRadio.value : 'published';
+
+          const payload = {
+            id: umkmId,
+            name: nameInput.value.trim(),
+            slug: slugInput.value.trim(),
+            categoryId: (document.getElementById('categoryId') as HTMLSelectElement).value,
+            shortDescription: (document.getElementById('shortDescription') as HTMLInputElement).value.trim(),
+            description: (document.getElementById('description') as HTMLTextAreaElement).value.trim(),
+            coverImage: {
+              publicId: coverPublicIdHidden.value,
+              url: coverUrlHidden.value,
+            },
+            gallery: galleryItems,
+            whatsapp: (document.getElementById('whatsapp') as HTMLInputElement).value.trim(),
+            address: (document.getElementById('address') as HTMLInputElement).value.trim(),
+            mapsUrl: (document.getElementById('mapsUrl') as HTMLInputElement).value.trim(),
+            openingHours: (document.getElementById('openingHours') as HTMLInputElement).value.trim(),
+            products,
+            status,
+          };
+
+          const res = await fetch('/api/admin/umkm', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const result = await res.json();
+          if (!res.ok) throw new Error(result.error || 'Gagal menyimpan perubahan.');
+
+          if (alertBox) {
+            alertBox.className = 'rounded-2xl p-4 text-xs font-semibold leading-relaxed bg-emerald-50 text-emerald-800 border border-emerald-200';
+            alertBox.textContent = 'Perubahan profil UMKM berhasil disimpan!';
+            alertBox.classList.remove('hidden');
+          }
+
+          setTimeout(() => {
+            window.location.href = '/admin/umkm';
+          }, 1000);
+        } catch (err: any) {
+          if (alertBox) {
+            alertBox.className = 'rounded-2xl p-4 text-xs font-semibold leading-relaxed bg-red-50 text-red-800 border border-red-200';
+            alertBox.textContent = `Gagal menyimpan: ${err.message}`;
+            alertBox.classList.remove('hidden');
+          }
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+          if (submitText) submitText.textContent = 'Simpan Perubahan';
+          if (submitSpinner) submitSpinner.classList.add('hidden');
+        }
+      });
+    }
+  </script>
+</AdminLayout>

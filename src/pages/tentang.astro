@@ -1,0 +1,125 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+
+const breadcrumbItems = [
+  { name: 'Tentang Desa' },
+];
+
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
+);
+---
+
+<Layout
+  title="Tentang Desa Dadapayu & Katalog Digital UMKM — Semanu, Gunungkidul"
+  description="Profil Kalurahan Dadapayu, potensi ekonomi lokal masyarakat perbukitan karst, dan inisiatif digitalisasi promosi UMKM oleh mahasiswa KKN bersama pemerintah kalurahan."
+>
+  <div class="bg-gray-50 border-b border-gray-200">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+      <Breadcrumb items={breadcrumbItems} />
+      <div class="pt-2 pb-6">
+        <h1 class="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+          Profil Kalurahan Dadapayu & Inisiatif Katalog
+        </h1>
+        <p class="mt-2 text-sm sm:text-base text-gray-600 max-w-3xl">
+          Mengenal potensi alam, kekayaan budaya, dan langkah pemajuan ekonomi masyarakat Kalurahan Dadapayu, Kapanewon Semanu, Kabupaten Gunungkidul.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <section class="py-12 sm:py-16 bg-white">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-12">
+      
+      <!-- Sekilas Kalurahan -->
+      <div class="space-y-4">
+        <span class="text-xs font-bold uppercase tracking-wider text-village-700">Geografi & Karakteristik</span>
+        <h2 class="text-2xl font-bold text-gray-900">Mengenal Kalurahan Dadapayu</h2>
+        <div class="prose max-w-none text-gray-600 leading-relaxed space-y-3 text-sm sm:text-base">
+          <p>
+            Kalurahan Dadapayu merupakan salah satu kalurahan yang berada di Kapanewon Semanu, Kabupaten Gunungkidul, Daerah Istimewa Yogyakarta. Membentang di kawasan perbukitan karst Pegunungan Sewu yang khas, masyarakat Dadapayu dikenal tangguh, ulet, dan memiliki hubungan erat dengan pemanfaatan sumber daya alam sekitar.
+          </p>
+          <p>
+            Sektor pertanian ketela pohon (singkong) menjadi komoditas primadona. Dari hasil bumi inilah lahir tradisi pengolahan pangan turun-temurun seperti tiwul, gatot, gaplek, dan tepung mocaf yang kini menjadi produk kuliner bernilai ekonomi tinggi.
+          </p>
+        </div>
+      </div>
+
+      <!-- Potensi Unggulan -->
+      <div class="space-y-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-village-700">Potensi Ekonomi Lokal</span>
+        <h2 class="text-2xl font-bold text-gray-900">4 Pilar Potensi Usaha Warga Dadapayu</h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-gray-200/90 bg-gray-50/60 p-5 space-y-2">
+            <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-village-200 text-village-800 text-xs font-bold">1</span>
+              Kuliner Tradisional & Ketela
+            </h3>
+            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
+              Tiwul manis, gatot kenyal, tepung mocaf bebas gluten, dan aneka keripik renyah berbahan baku singkong lokal Dadapayu.
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-gray-200/90 bg-gray-50/60 p-5 space-y-2">
+            <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-village-200 text-village-800 text-xs font-bold">2</span>
+              Kerajinan Bambu & Kayu Jati
+            </h3>
+            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
+              Anyaman besek kenduri, kukusan tumpeng, keranjang souvenir, dan peralatan makan kayu jati ramah lingkungan yang diproduksi perajin lokal.
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-gray-200/90 bg-gray-50/60 p-5 space-y-2">
+            <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-village-200 text-village-800 text-xs font-bold">3</span>
+              Madu Murni Lebah Klanceng
+            </h3>
+            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
+              Budidaya lebah tanpa sengat (Trigona) di kebun warga yang menghasilkan madu kaya antioksidan dan propolis alami.
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-gray-200/90 bg-gray-50/60 p-5 space-y-2">
+            <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-village-200 text-village-800 text-xs font-bold">4</span>
+              Jasa & Perbengkelan Mandiri
+            </h3>
+            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
+              Layanan fabrikasi besi, bengkel las alat tani, dan warung kebutuhan pokok warga yang menopang perputaran roda ekonomi lokal.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inisiatif Katalog Digital -->
+      <div class="rounded-3xl bg-village-50 border border-village-200/80 p-6 sm:p-8 space-y-4">
+        <h2 class="text-xl font-bold text-village-950">Tentang Inisiatif Katalog Digital</h2>
+        <p class="text-sm text-village-900 leading-relaxed">
+          Website ini dirancang dan dikembangkan sebagai wujud kolaborasi pengabdian program Kuliah Kerja Nyata (KKN) bersama Pemerintah Kalurahan Dadapayu. Tujuannya adalah menghadirkan etalase digital terpusat yang ringan, berdaya tahan lama, dan mudah dikelola secara mandiri oleh perangkat kalurahan setelah program KKN selesai.
+        </p>
+        <p class="text-sm text-village-900 leading-relaxed">
+          Katalog ini <strong>bukan marketplace perantara</strong>; setiap calon pembeli dapat langsung terhubung ke nomor WhatsApp resmi masing-masing pemilik usaha tanpa biaya potongan apa pun.
+        </p>
+      </div>
+
+      <!-- Informasi Pendaftaran & Kontak Kantor Desa -->
+      <div class="space-y-4 pt-4 border-t border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900">Ingin Mendaftarkan Usaha Anda?</h2>
+        <p class="text-sm text-gray-600 leading-relaxed">
+          Bagi warga Kalurahan Dadapayu yang memiliki usaha mikro, kecil, maupun menengah dan ingin profil usahanya ditampilkan dalam katalog ini, silakan datang langsung ke Kantor Kalurahan Dadapayu pada jam pelayanan kerja dengan membawa data usaha, foto produk, dan nomor kontak WhatsApp aktif.
+        </p>
+
+        <div class="mt-4 rounded-2xl bg-gray-50 p-5 border border-gray-200 text-sm space-y-2 text-gray-700">
+          <p class="font-semibold text-gray-900">Kantor Pemerintah Kalurahan Dadapayu</p>
+          <p>Alamat: Kompleks Balai Kalurahan Dadapayu, Kapanewon Semanu, Kabupaten Gunungkidul, D.I. Yogyakarta 55893</p>
+          <p>Jam Kerja: Senin – Jumat, 08.00 – 15.30 WIB</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</Layout>
