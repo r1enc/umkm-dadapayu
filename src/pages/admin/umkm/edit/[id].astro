@@ -4,6 +4,7 @@ import { fetchCategories } from '../../../../lib/services/categoryService';
 import { firestoreData, firestoreGet } from '../../../../lib/firebase/firestoreRest';
 import { verifyAdminSession } from '../../../../lib/firebase/verifyAdmin';
 import { getDemoUMKM } from '../../../../lib/dev/demoStore';
+import { isNetlifyPreview } from '../../../../lib/netlifyPreview';
 import type { UMKM } from '../../../../types';
 
 const { id } = Astro.params;
@@ -17,7 +18,7 @@ const categories = await fetchCategories();
 // Fetch UMKM menggunakan Firebase ID Token dari sesi yang diverifikasi server.
 let umkmData: UMKM | null = null;
 try {
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && !isNetlifyPreview) {
     umkmData = getDemoUMKM(id);
   } else {
     const admin = await verifyAdminSession(Astro.request);
@@ -418,6 +419,7 @@ if (!umkmData) {
           });
 
           const signData = await signRes.json();
+          if (!signRes.ok) throw new Error(signData.error || signData.details || 'Unggah foto tidak tersedia pada preview ini.');
           const formData = new FormData();
           formData.append('file', file);
           formData.append('api_key', signData.apiKey);
@@ -497,6 +499,7 @@ if (!umkmData) {
             body: JSON.stringify({ folder: 'umkm-dadapayu' }),
           });
           const signData = await signRes.json();
+          if (!signRes.ok) throw new Error(signData.error || signData.details || 'Unggah foto tidak tersedia pada preview ini.');
 
           for (const file of files) {
             const formData = new FormData();

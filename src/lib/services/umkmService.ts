@@ -13,6 +13,7 @@ import { firestoreList } from '../firebase/firestoreRest';
 import { verifyAdminSession } from '../firebase/verifyAdmin';
 import { listDemoUMKM } from '../dev/demoStore';
 import { findPublishedUMKM, listPublishedByCategory } from '../firebase/firestorePublicCore.mjs';
+import { isNetlifyPreview } from '../netlifyPreview';
 
 const UMKM_COLLECTION = 'umkms';
 
@@ -24,7 +25,7 @@ const UMKM_COLLECTION = 'umkms';
  * sistem mengembalikan array kosong [].
  */
 export async function fetchPublishedUMKM(): Promise<UMKM[]> {
-  const isDev = import.meta.env.DEV === true;
+  const isDev = import.meta.env.DEV === true && !isNetlifyPreview;
   if (isDev) return listDemoUMKM().filter((item) => item.status === 'published');
 
   if (!isFirebaseConfigured()) return [];
@@ -99,7 +100,7 @@ function mapPublicUMKM(id: string, d: Record<string, any>): UMKM {
 const publicQueryApi = { collection, doc, getDoc, getDocs, limit, query, where };
 
 export async function fetchUMKMBySlug(slug: string): Promise<UMKM | undefined> {
-  if (import.meta.env.DEV === true) return listDemoUMKM().find((item) => (item.slug === slug || item.id === slug) && item.status === 'published');
+  if (import.meta.env.DEV === true && !isNetlifyPreview) return listDemoUMKM().find((item) => (item.slug === slug || item.id === slug) && item.status === 'published');
   const db = getFirestoreDb();
   if (!db) return undefined;
   try {
@@ -112,7 +113,7 @@ export async function fetchUMKMBySlug(slug: string): Promise<UMKM | undefined> {
 }
 
 export async function fetchUMKMByCategory(categoryId: string): Promise<UMKM[]> {
-  if (import.meta.env.DEV === true) return listDemoUMKM().filter((item) => item.categoryId === categoryId && item.status === 'published');
+  if (import.meta.env.DEV === true && !isNetlifyPreview) return listDemoUMKM().filter((item) => item.categoryId === categoryId && item.status === 'published');
   const db = getFirestoreDb();
   if (!db) return [];
   try {
@@ -125,7 +126,7 @@ export async function fetchUMKMByCategory(categoryId: string): Promise<UMKM[]> {
 }
 
 export async function fetchRelatedUMKM(categoryId: string, excludeSlug: string, count = 3): Promise<UMKM[]> {
-  if (import.meta.env.DEV === true) return listDemoUMKM().filter((item) => item.categoryId === categoryId && item.status === 'published' && item.slug !== excludeSlug).slice(0, count);
+  if (import.meta.env.DEV === true && !isNetlifyPreview) return listDemoUMKM().filter((item) => item.categoryId === categoryId && item.status === 'published' && item.slug !== excludeSlug).slice(0, count);
   const db = getFirestoreDb();
   if (!db) return [];
   try {
@@ -139,7 +140,7 @@ export async function fetchRelatedUMKM(categoryId: string, excludeSlug: string, 
 
 /** Mengambil semua status untuk panel admin; tidak pernah memakai data contoh. */
 export async function fetchAdminUMKM(request: Request): Promise<UMKM[]> {
-  if (import.meta.env.DEV === true) return listDemoUMKM();
+  if (import.meta.env.DEV === true && !isNetlifyPreview) return listDemoUMKM();
   const admin = await verifyAdminSession(request);
   if (!admin.verified) return [];
   const documents = await firestoreList(request, admin, UMKM_COLLECTION);

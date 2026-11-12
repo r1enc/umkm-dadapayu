@@ -10,6 +10,9 @@ export default defineConfig({
     cacheOnDemandPages: false,
   }),
   vite: {
+    define: {
+      __UMKM_NETLIFY_PREVIEW__: 'true',
+    },
     plugins: [tailwindcss()],
   },
 });

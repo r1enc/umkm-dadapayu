@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { verifyAdminSession } from '../../../lib/firebase/verifyAdmin';
+import { isNetlifyPreview } from '../../../lib/netlifyPreview';
 
 async function sha1(str: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -18,6 +19,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(
       JSON.stringify({ error: 'Otorisasi ditolak.', details: adminCheck.error }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (isNetlifyPreview) {
+    return Response.json(
+      { error: 'Penghapusan foto Cloudinary dinonaktifkan pada preview Netlify; foto yang tersimpan tetap dipertahankan.' },
+      { status: 409, headers: { 'Cache-Control': 'no-store, private' } }
     );
   }
 

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { verifyAdminSession } from '../../../lib/firebase/verifyAdmin';
+import { isNetlifyPreview } from '../../../lib/netlifyPreview';
 
 // Helper Web Crypto API untuk membuat SHA-1 signature (Kompatibel 100% dengan Cloudflare Workers)
 async function sha1(str: string): Promise<string> {
@@ -22,6 +23,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         details: adminCheck.error,
       }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (isNetlifyPreview) {
+    return Response.json(
+      { error: 'Unggah foto dinonaktifkan pada preview Netlify. Gunakan gambar contoh atau foto yang sudah tersedia.' },
+      { status: 409, headers: { 'Cache-Control': 'no-store, private' } }
     );
   }
 

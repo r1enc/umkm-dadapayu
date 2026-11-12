@@ -503,6 +503,7 @@ const categories = await fetchCategories();
             body: JSON.stringify({ folder: 'umkm-dadapayu' }),
           });
           const signData = await signRes.json();
+          if (!signRes.ok) throw new Error(signData.error || signData.details || 'Unggah foto tidak tersedia pada preview ini.');
 
           for (const file of files) {
             const formData = new FormData();

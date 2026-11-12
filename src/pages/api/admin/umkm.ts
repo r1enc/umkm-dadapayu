@@ -3,6 +3,7 @@ import { firestoreCreate, firestoreData, firestoreDelete, firestoreErrorResponse
 import { verifyAdminSession } from '../../../lib/firebase/verifyAdmin';
 import type { UMKM, UMKMStatus } from '../../../types';
 import { createDemoUMKM, deleteDemoUMKM, updateDemoUMKM } from '../../../lib/dev/demoStore';
+import { isNetlifyPreview } from '../../../lib/netlifyPreview';
 
 async function authorize(request: Request, locals: App.Locals) {
   const admin = await verifyAdminSession(request, locals.runtime?.env as Record<string, string> | undefined);
@@ -29,7 +30,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: chosenStatus, createdAt: now, updatedAt: now,
     };
     if (openingHours) data.openingHours = openingHours;
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && !isNetlifyPreview) {
       const id = createDemoUMKM(data as Omit<UMKM, 'id'>);
       return Response.json({ success: true, id, slug: data.slug }, { status: 201 });
     }
@@ -46,7 +47,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     const data: Record<string, unknown> = { ...updates, updatedAt: new Date().toISOString() };
     delete data.createdAt; delete data.id;
     if (typeof data.whatsapp === 'string') data.whatsapp = data.whatsapp.replace(/\D/g, '');
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && !isNetlifyPreview) {
       if (!updateDemoUMKM(id, data as Partial<UMKM>)) return Response.json({ error: 'Data UMKM tidak ditemukan.', code: 'not-found' }, { status: 404 });
       return Response.json({ success: true, id });
     }
@@ -63,7 +64,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   try {
     const { id } = await request.json();
     if (typeof id !== 'string' || !id) return Response.json({ error: 'ID UMKM wajib disertakan.' }, { status: 400 });
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && !isNetlifyPreview) {
       if (!deleteDemoUMKM(id)) return Response.json({ error: 'Data UMKM tidak ditemukan.', code: 'not-found' }, { status: 404 });
       return Response.json({ success: true, message: 'UMKM demo berhasil dihapus.' });
     }
@@ -71,6 +72,10 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     const data = firestoreData(document);
     const images = [data.coverImage?.publicId, ...(Array.isArray(data.gallery) ? data.gallery.map((image: { publicId?: string }) => image?.publicId) : [])].filter((value): value is string => typeof value === 'string' && !!value);
     await firestoreDelete(request, auth.admin, 'umkms', id);
+
+    if (isNetlifyPreview && images.length) {
+      return Response.json({ success: true, warning: 'Data UMKM terhapus; foto Cloudinary tetap disimpan pada preview Netlify.', orphanedAssets: images }, { status: 207, headers: { 'Cache-Control': 'no-store, private' } });
+    }
 
     const env = locals.runtime?.env as Record<string, string> | undefined;
     const apiSecret = env?.CLOUDINARY_API_SECRET || import.meta.env.CLOUDINARY_API_SECRET;

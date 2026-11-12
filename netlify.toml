@@ -1,3 +1,6 @@
 [build]
   command = "npm run build:netlify"
   publish = "dist-netlify"
+
+[build.environment]
+  PUBLIC_FIREBASE_PROJECT_ID = "umkm-dadapayu"

@@ -5,3 +5,5 @@ allowBuilds:
   re2: true
   sharp: true
   workerd: true
+publicHoistPattern:
+  - '@firebase/*'

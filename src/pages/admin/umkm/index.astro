@@ -268,7 +268,7 @@ const categories = await fetchCategories();
 
           const result = await res.json();
           if (res.status === 207) {
-            alert(`Data UMKM terhapus, tetapi foto berikut perlu dibersihkan di Cloudinary: ${(result.orphanedAssets || []).join(', ')}`);
+            alert(result.warning || `Data UMKM terhapus, tetapi foto berikut perlu dibersihkan di Cloudinary: ${(result.orphanedAssets || []).join(', ')}`);
             window.location.reload();
           } else if (res.ok) {
             window.location.reload();

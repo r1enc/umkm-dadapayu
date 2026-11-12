@@ -13,12 +13,13 @@ import { firestoreList } from '../firebase/firestoreRest';
 import { verifyAdminSession } from '../firebase/verifyAdmin';
 import { listDemoCategories } from '../dev/demoStore';
 import { findActiveCategoryById, findActiveCategoryBySlug } from '../firebase/firestorePublicCore.mjs';
+import { isNetlifyPreview } from '../netlifyPreview';
 
 const CATEGORIES_COLLECTION = 'categories';
 
 /** Semua kategori untuk panel admin, termasuk yang sedang nonaktif. */
 export async function fetchAdminCategories(request: Request): Promise<Category[]> {
-  if (import.meta.env.DEV === true) return listDemoCategories().sort((a, b) => a.sortOrder - b.sortOrder);
+  if (import.meta.env.DEV === true && !isNetlifyPreview) return listDemoCategories().sort((a, b) => a.sortOrder - b.sortOrder);
   const admin = await verifyAdminSession(request);
   if (!admin.verified) return [];
   const documents = await firestoreList(request, admin, CATEGORIES_COLLECTION);
@@ -37,7 +38,7 @@ export async function fetchAdminCategories(request: Request): Promise<Category[]
  * mengembalikan array kosong demi menjaga integritas data riil desa.
  */
 export async function fetchCategories(): Promise<Category[]> {
-  const isDev = import.meta.env.DEV === true;
+  const isDev = import.meta.env.DEV === true && !isNetlifyPreview;
   if (isDev) return listDemoCategories().filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder);
 
   if (!isFirebaseConfigured()) return [];
@@ -77,7 +78,7 @@ export async function fetchCategories(): Promise<Category[]> {
 }
 
 export async function fetchCategoryBySlug(slug: string): Promise<Category | undefined> {
-  if (import.meta.env.DEV === true) return listDemoCategories().find((item) => item.active && (item.slug === slug || item.id === slug));
+  if (import.meta.env.DEV === true && !isNetlifyPreview) return listDemoCategories().find((item) => item.active && (item.slug === slug || item.id === slug));
   const db = getFirestoreDb();
   if (!db) return undefined;
   try {
@@ -94,7 +95,7 @@ export async function fetchCategoryBySlug(slug: string): Promise<Category | unde
 }
 
 export async function fetchCategoryById(id: string): Promise<Category | undefined> {
-  if (import.meta.env.DEV === true) return listDemoCategories().find((item) => item.id === id && item.active);
+  if (import.meta.env.DEV === true && !isNetlifyPreview) return listDemoCategories().find((item) => item.id === id && item.active);
   const db = getFirestoreDb();
   if (!db) return undefined;
   try {

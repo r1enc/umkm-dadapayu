@@ -2,6 +2,7 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { fetchAdminUMKM } from '../../lib/services/umkmService';
 import { fetchCategories } from '../../lib/services/categoryService';
+import { isNetlifyPreview } from '../../lib/netlifyPreview';
 
 // SSR data fetch awal
 const allUMKM = await fetchAdminUMKM(Astro.request);
@@ -40,6 +41,27 @@ const totalAll = allUMKM.length;
         </a>
       </div>
     </div>
+
+    {isNetlifyPreview && (
+      <section class="rounded-2xl border border-amber-300 bg-amber-50 p-5 space-y-3">
+        <div>
+          <h2 class="text-sm font-bold text-amber-950">Data Uji Preview</h2>
+          <p class="mt-1 text-xs leading-relaxed text-amber-900">
+            Tindakan ini membuat 9 profil usaha contoh berstatus Konsep di Firestore project utama. Data tidak tampil di katalog publik.
+            Penghapusan hanya menyasar dokumen yang dibuat oleh alat uji ini.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="preview-seed-create" type="button" class="rounded-lg bg-amber-800 px-4 py-2 text-xs font-bold text-white hover:bg-amber-900">
+            Siapkan 9 Data Uji
+          </button>
+          <button id="preview-seed-cleanup" type="button" class="rounded-lg border border-amber-700 px-4 py-2 text-xs font-bold text-amber-950 hover:bg-amber-100">
+            Hapus Data Uji
+          </button>
+        </div>
+        <p id="preview-seed-status" class="hidden text-xs font-semibold" role="status" aria-live="polite"></p>
+      </section>
+    )}
 
     <!-- 4 Kartu Statistik Sederhana (Tanpa Grafik Rumit) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -200,4 +222,50 @@ const totalAll = allUMKM.length;
     </div>
 
   </div>
+  <script>
+    const createButton = document.getElementById('preview-seed-create') as HTMLButtonElement | null;
+    const cleanupButton = document.getElementById('preview-seed-cleanup') as HTMLButtonElement | null;
+    const status = document.getElementById('preview-seed-status');
+
+    async function runPreviewSeed(action: 'seed' | 'cleanup') {
+      const isSeed = action === 'seed';
+      const prompt = isSeed
+        ? 'Buat 9 data UMKM uji berstatus Konsep di Firestore project umkm-dadapayu? Kategori uji hanya dibuat jika kategori aktif yang ada tidak cukup. Data yang sudah ada tidak akan ditimpa.'
+        : 'Hapus hanya dokumen UMKM dan kategori uji yang dikenali dari alat preview ini? Data lain akan dipertahankan.';
+      if (!window.confirm(prompt)) return;
+
+      const button = isSeed ? createButton : cleanupButton;
+      if (!button || !status) return;
+      button.disabled = true;
+      status.className = 'text-xs font-semibold text-amber-900';
+      status.textContent = isSeed ? 'Menyiapkan data uji di Firestore…' : 'Menghapus data uji yang dikenali…';
+
+      try {
+        const response = await fetch('/api/admin/preview-seed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action,
+            confirmation: isSeed ? 'BUAT_DATA_UJI_PREVIEW_NETLIFY' : 'HAPUS_DATA_UJI_PREVIEW_NETLIFY',
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Operasi data uji gagal.');
+
+        status.className = 'text-xs font-semibold text-emerald-800';
+        status.textContent = isSeed
+          ? `Selesai. ${result.createdUMKM} UMKM dibuat, ${result.existingUMKM} sudah tersedia; ${result.createdCategories} kategori uji dibuat, ${result.reusedCategories} kategori dipakai ulang.`
+          : `Selesai. ${result.removedUMKM} UMKM dan ${result.removedCategories} kategori uji dihapus. ${result.skippedUMKM} dokumen dilewati karena tidak cocok sebagai data uji; ${result.preservedCategories} kategori dipertahankan karena masih digunakan.`;
+        window.setTimeout(() => window.location.reload(), 1500);
+      } catch (error) {
+        status.className = 'text-xs font-semibold text-red-800';
+        status.textContent = `Gagal: ${error instanceof Error ? error.message : 'Terjadi kesalahan saat memproses data uji.'}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    createButton?.addEventListener('click', () => runPreviewSeed('seed'));
+    cleanupButton?.addEventListener('click', () => runPreviewSeed('cleanup'));
+  </script>
 </AdminLayout>
