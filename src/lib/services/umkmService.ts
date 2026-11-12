@@ -1,16 +1,18 @@
 import {
   collection,
+  doc,
   getDocs,
+  getDoc,
+  limit,
   query,
   where,
 } from 'firebase/firestore/lite';
 import { getFirestoreDb, isFirebaseConfigured } from '../firebase/config';
-import { mockUMKMList } from '../../data/mockData';
-import { fetchCategoryBySlug } from './categoryService';
-import type { UMKM, Category } from '../../types';
+import type { UMKM } from '../../types';
 import { firestoreList } from '../firebase/firestoreRest';
 import { verifyAdminSession } from '../firebase/verifyAdmin';
 import { listDemoUMKM } from '../dev/demoStore';
+import { findPublishedUMKM, listPublishedByCategory } from '../firebase/firestorePublicCore.mjs';
 
 const UMKM_COLLECTION = 'umkms';
 
@@ -25,14 +27,10 @@ export async function fetchPublishedUMKM(): Promise<UMKM[]> {
   const isDev = import.meta.env.DEV === true;
   if (isDev) return listDemoUMKM().filter((item) => item.status === 'published');
 
-  if (!isFirebaseConfigured()) {
-    return isDev ? mockUMKMList.filter((item) => item.status === 'published') : [];
-  }
+  if (!isFirebaseConfigured()) return [];
 
   const db = getFirestoreDb();
-  if (!db) {
-    return isDev ? mockUMKMList.filter((item) => item.status === 'published') : [];
-  }
+  if (!db) return [];
 
   try {
     const umkmRef = collection(db, UMKM_COLLECTION);
@@ -41,7 +39,7 @@ export async function fetchPublishedUMKM(): Promise<UMKM[]> {
 
     if (snapshot.empty) {
       // Pada production, kembalikan array kosong jika belum ada data riil
-      return isDev ? mockUMKMList.filter((item) => item.status === 'published') : [];
+      return [];
     }
 
     const umkms: UMKM[] = [];
@@ -73,67 +71,70 @@ export async function fetchPublishedUMKM(): Promise<UMKM[]> {
     return umkms;
   } catch (error) {
     console.error('[Firestore Service] Gagal mengambil data UMKM dari Firestore:', error);
-    return isDev ? mockUMKMList.filter((item) => item.status === 'published') : [];
+    return [];
   }
 }
 
-export async function fetchFeaturedUMKM(limit = 6): Promise<UMKM[]> {
-  const all = await fetchPublishedUMKM();
-  return all.slice(0, limit);
+function mapPublicUMKM(id: string, d: Record<string, any>): UMKM {
+  return {
+    id,
+    name: d.name || '',
+    slug: d.slug || id,
+    categoryId: d.categoryId || '',
+    shortDescription: d.shortDescription || '',
+    description: d.description || '',
+    coverImage: d.coverImage || { publicId: '', url: 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=1000&q=80' },
+    gallery: Array.isArray(d.gallery) ? d.gallery : [],
+    address: d.address || '',
+    mapsUrl: d.mapsUrl || 'https://maps.google.com/?q=Dadapayu,+Semanu,+Gunung+Kidul',
+    whatsapp: d.whatsapp || '',
+    openingHours: d.openingHours || undefined,
+    products: Array.isArray(d.products) ? d.products : [],
+    status: 'published',
+    createdAt: d.createdAt?.toDate ? d.createdAt.toDate().toISOString() : (d.createdAt || new Date().toISOString()),
+    updatedAt: d.updatedAt?.toDate ? d.updatedAt.toDate().toISOString() : (d.updatedAt || new Date().toISOString()),
+  };
 }
 
+const publicQueryApi = { collection, doc, getDoc, getDocs, limit, query, where };
+
 export async function fetchUMKMBySlug(slug: string): Promise<UMKM | undefined> {
-  const all = await fetchPublishedUMKM();
-  return all.find((item) => item.slug === slug);
+  if (import.meta.env.DEV === true) return listDemoUMKM().find((item) => (item.slug === slug || item.id === slug) && item.status === 'published');
+  const db = getFirestoreDb();
+  if (!db) return undefined;
+  try {
+    const result = await findPublishedUMKM(db, slug, publicQueryApi);
+    return result ? mapPublicUMKM(result.id, result.data) : undefined;
+  } catch (error) {
+    console.error('[Firestore Service] Gagal mengambil UMKM detail:', error);
+    return undefined;
+  }
 }
 
 export async function fetchUMKMByCategory(categoryId: string): Promise<UMKM[]> {
-  const all = await fetchPublishedUMKM();
-  return all.filter((item) => item.categoryId === categoryId);
+  if (import.meta.env.DEV === true) return listDemoUMKM().filter((item) => item.categoryId === categoryId && item.status === 'published');
+  const db = getFirestoreDb();
+  if (!db) return [];
+  try {
+    const docs = await listPublishedByCategory(db, categoryId, publicQueryApi);
+    return docs.map((item: { id: string; data: Record<string, any> }) => mapPublicUMKM(item.id, item.data));
+  } catch (error) {
+    console.error('[Firestore Service] Gagal mengambil UMKM kategori:', error);
+    return [];
+  }
 }
 
-export async function fetchCategoryUMKMCount(categoryId: string): Promise<number> {
-  const all = await fetchPublishedUMKM();
-  return all.filter((item) => item.categoryId === categoryId).length;
-}
-
-export async function searchUMKMService(params: {
-  query?: string;
-  categorySlug?: string;
-}): Promise<{
-  items: UMKM[];
-  total: number;
-  category?: Category;
-}> {
-  let results = await fetchPublishedUMKM();
-  let matchedCategory: Category | undefined;
-
-  if (params.categorySlug && params.categorySlug !== 'semua') {
-    matchedCategory = await fetchCategoryBySlug(params.categorySlug);
-    if (matchedCategory) {
-      const catId = matchedCategory.id;
-      results = results.filter((item) => item.categoryId === catId);
-    }
+export async function fetchRelatedUMKM(categoryId: string, excludeSlug: string, count = 3): Promise<UMKM[]> {
+  if (import.meta.env.DEV === true) return listDemoUMKM().filter((item) => item.categoryId === categoryId && item.status === 'published' && item.slug !== excludeSlug).slice(0, count);
+  const db = getFirestoreDb();
+  if (!db) return [];
+  try {
+    const docs = await listPublishedByCategory(db, categoryId, publicQueryApi, { excludeSlug, limit: count });
+    return docs.map((item: { id: string; data: Record<string, any> }) => mapPublicUMKM(item.id, item.data));
+  } catch (error) {
+    console.error('[Firestore Service] Gagal mengambil UMKM terkait:', error);
+    return [];
   }
-
-  if (params.query && params.query.trim() !== '') {
-    const q = params.query.toLowerCase().trim();
-    results = results.filter((item) => {
-      const matchName = item.name.toLowerCase().includes(q);
-      const matchDesc = item.shortDescription.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
-      const matchAddress = item.address.toLowerCase().includes(q);
-      const matchProducts = item.products.some(
-        (p) => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q))
-      );
-      return matchName || matchDesc || matchAddress || matchProducts;
-    });
-  }
-
-  return {
-    items: results,
-    total: results.length,
-    category: matchedCategory,
-  };
 }
 
 /** Mengambil semua status untuk panel admin; tidak pernah memakai data contoh. */

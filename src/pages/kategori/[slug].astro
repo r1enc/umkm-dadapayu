@@ -26,10 +26,6 @@ const breadcrumbItems = [
   { name: category.name },
 ];
 
-Astro.response.headers.set(
-  'Cache-Control',
-  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
-);
 ---
 
 <Layout

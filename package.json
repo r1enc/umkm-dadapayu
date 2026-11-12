@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "build:netlify": "astro build --config astro.config.netlify.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "test:rules": "firebase emulators:exec --only firestore --project demo-umkm-dadapayu-test \"node --test tests/security-rules.test.mjs\"",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
+    "@astrojs/netlify": "6.6.4",
     "@firebase/rules-unit-testing": "^6.0.0",
     "@tailwindcss/vite": "^4.0.9",
     "firebase-tools": "^15.35.0",

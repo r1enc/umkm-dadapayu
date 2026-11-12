@@ -4,27 +4,20 @@ import UMKMCard from '../components/UMKMCard.astro';
 import Breadcrumb from '../components/Breadcrumb.astro';
 import EmptyState from '../components/EmptyState.astro';
 import { fetchCategories } from '../lib/services/categoryService';
-import { searchUMKMService, fetchPublishedUMKM } from '../lib/services/umkmService';
+import { fetchPublishedUMKM } from '../lib/services/umkmService';
+import { loadCatalogData } from '../lib/services/publicDataCore.mjs';
 
 // Query parameters from URL (Server-Side)
 const searchParams = Astro.url.searchParams;
 const queryParam = searchParams.get('q') || '';
 const categoryParam = searchParams.get('kategori') || 'semua';
 
-const categories = await fetchCategories();
-const allPublished = await fetchPublishedUMKM();
-const totalAll = allPublished.length;
-
-const { items: filteredUMKM, total, category: activeCategory } = await searchUMKMService({
-  query: queryParam,
-  categorySlug: categoryParam,
-});
-
-// Cache control: edge caching with stale-while-revalidate
-Astro.response.headers.set(
-  'Cache-Control',
-  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
+const { categories, allPublished, items: filteredUMKM, total, category: activeCategory } = await loadCatalogData(
+  fetchCategories,
+  fetchPublishedUMKM,
+  { query: queryParam, categorySlug: categoryParam },
 );
+const totalAll = allPublished.length;
 
 const breadcrumbItems = [
   { name: 'Katalog UMKM', url: '/katalog' },

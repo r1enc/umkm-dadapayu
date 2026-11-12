@@ -3,18 +3,11 @@ import Layout from '../layouts/Layout.astro';
 import CategoryCard from '../components/CategoryCard.astro';
 import UMKMCard from '../components/UMKMCard.astro';
 import { fetchCategories } from '../lib/services/categoryService';
-import { fetchFeaturedUMKM, fetchPublishedUMKM } from '../lib/services/umkmService';
+import { fetchPublishedUMKM } from '../lib/services/umkmService';
+import { loadHomepageData } from '../lib/services/publicDataCore.mjs';
 
-const categories = await fetchCategories();
-const featuredUMKM = await fetchFeaturedUMKM(6);
-const allPublished = await fetchPublishedUMKM();
-const totalUMKM = allPublished.length;
+const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCategories, fetchPublishedUMKM);
 
-// Header cache untuk performa maksimal di Edge
-Astro.response.headers.set(
-  'Cache-Control',
-  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
-);
 ---
 
 <Layout

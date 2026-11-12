@@ -6,7 +6,7 @@ import {
   formatRupiah,
   createWhatsAppLink,
 } from '../../data/mockData';
-import { fetchUMKMBySlug, fetchUMKMByCategory } from '../../lib/services/umkmService';
+import { fetchUMKMBySlug, fetchRelatedUMKM } from '../../lib/services/umkmService';
 import { fetchCategoryById } from '../../lib/services/categoryService';
 import { getOptimizedImageUrl } from '../../lib/cloudinary';
 
@@ -27,10 +27,7 @@ if (!umkm) {
 const category = await fetchCategoryById(umkm.categoryId);
 
 // UMKM terkait dalam kategori yang sama (selain UMKM saat ini)
-const categoryUMKMs = await fetchUMKMByCategory(umkm.categoryId);
-const relatedUMKM = categoryUMKMs
-  .filter((item) => item.id !== umkm.id)
-  .slice(0, 3);
+const relatedUMKM = await fetchRelatedUMKM(umkm.categoryId, umkm.slug, 3);
 
 // Breadcrumb items
 const breadcrumbItems = [
@@ -47,12 +44,6 @@ const optimizedCoverUrl = getOptimizedImageUrl(umkm.coverImage.url, {
   width: 1200,
   crop: 'limit',
 });
-
-// Cache header
-Astro.response.headers.set(
-  'Cache-Control',
-  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
-);
 
 // Schema.org Structured Data untuk Google Search Crawler (Rich Snippet LocalBusiness)
 const jsonLd = {

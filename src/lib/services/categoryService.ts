@@ -1,15 +1,18 @@
 import {
   collection,
+  doc,
   getDocs,
+  getDoc,
+  limit,
   query,
   where,
 } from 'firebase/firestore/lite';
 import { getFirestoreDb, isFirebaseConfigured } from '../firebase/config';
-import { mockCategories } from '../../data/mockData';
 import type { Category } from '../../types';
 import { firestoreList } from '../firebase/firestoreRest';
 import { verifyAdminSession } from '../firebase/verifyAdmin';
 import { listDemoCategories } from '../dev/demoStore';
+import { findActiveCategoryById, findActiveCategoryBySlug } from '../firebase/firestorePublicCore.mjs';
 
 const CATEGORIES_COLLECTION = 'categories';
 
@@ -37,14 +40,10 @@ export async function fetchCategories(): Promise<Category[]> {
   const isDev = import.meta.env.DEV === true;
   if (isDev) return listDemoCategories().filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder);
 
-  if (!isFirebaseConfigured()) {
-    return isDev ? mockCategories.filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder) : [];
-  }
+  if (!isFirebaseConfigured()) return [];
 
   const db = getFirestoreDb();
-  if (!db) {
-    return isDev ? mockCategories.filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder) : [];
-  }
+  if (!db) return [];
 
   try {
     const categoriesRef = collection(db, CATEGORIES_COLLECTION);
@@ -53,7 +52,7 @@ export async function fetchCategories(): Promise<Category[]> {
 
     if (snapshot.empty) {
       // Jika kosong di production, kembalikan array kosong (bukan mock data)
-      return isDev ? mockCategories.filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder) : [];
+      return [];
     }
 
     const categories: Category[] = [];
@@ -73,16 +72,40 @@ export async function fetchCategories(): Promise<Category[]> {
     return categories.sort((a, b) => a.sortOrder - b.sortOrder);
   } catch (error) {
     console.error('[Firestore Service] Gagal mengambil kategori dari Firestore:', error);
-    return isDev ? mockCategories.filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder) : [];
+    return [];
   }
 }
 
 export async function fetchCategoryBySlug(slug: string): Promise<Category | undefined> {
-  const all = await fetchCategories();
-  return all.find((c) => c.slug === slug);
+  if (import.meta.env.DEV === true) return listDemoCategories().find((item) => item.active && (item.slug === slug || item.id === slug));
+  const db = getFirestoreDb();
+  if (!db) return undefined;
+  try {
+    const result = await findActiveCategoryBySlug(db, slug, { collection, doc, getDoc, getDocs, limit, query, where });
+    return result ? {
+      id: result.id, name: result.data.name || '', slug: result.data.slug || result.id,
+      sortOrder: typeof result.data.sortOrder === 'number' ? result.data.sortOrder : 99, active: true,
+      createdAt: result.data.createdAt, updatedAt: result.data.updatedAt,
+    } : undefined;
+  } catch (error) {
+    console.error('[Firestore Service] Gagal mengambil kategori:', error);
+    return undefined;
+  }
 }
 
 export async function fetchCategoryById(id: string): Promise<Category | undefined> {
-  const all = await fetchCategories();
-  return all.find((c) => c.id === id);
+  if (import.meta.env.DEV === true) return listDemoCategories().find((item) => item.id === id && item.active);
+  const db = getFirestoreDb();
+  if (!db) return undefined;
+  try {
+    const result = await findActiveCategoryById(db, id, { doc, getDoc });
+    return result ? {
+      id: result.id, name: result.data.name || '', slug: result.data.slug || result.id,
+      sortOrder: typeof result.data.sortOrder === 'number' ? result.data.sortOrder : 99, active: true,
+      createdAt: result.data.createdAt, updatedAt: result.data.updatedAt,
+    } : undefined;
+  } catch (error) {
+    console.error('[Firestore Service] Gagal mengambil kategori:', error);
+    return undefined;
+  }
 }
