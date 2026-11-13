@@ -14,6 +14,7 @@ import { verifyAdminSession } from '../firebase/verifyAdmin';
 import { listDemoUMKM } from '../dev/demoStore';
 import { findPublishedUMKM, listPublishedByCategory } from '../firebase/firestorePublicCore.mjs';
 import { isNetlifyPreview } from '../netlifyPreview';
+import { PREVIEW_UMKM_FIXTURES, isLegacyPreviewUMKMIdentity } from '../admin/previewSeedData.mjs';
 
 const UMKM_COLLECTION = 'umkms';
 
@@ -46,6 +47,7 @@ export async function fetchPublishedUMKM(): Promise<UMKM[]> {
     const umkms: UMKM[] = [];
     snapshot.forEach((doc) => {
       const d = doc.data();
+      if (isNetlifyPreview && PREVIEW_UMKM_FIXTURES.some((fixture) => isLegacyPreviewUMKMIdentity({ id: doc.id, slug: d.slug }, fixture))) return;
       umkms.push({
         id: doc.id,
         name: d.name || '',
@@ -105,6 +107,7 @@ export async function fetchUMKMBySlug(slug: string): Promise<UMKM | undefined> {
   if (!db) return undefined;
   try {
     const result = await findPublishedUMKM(db, slug, publicQueryApi);
+    if (result && isNetlifyPreview && PREVIEW_UMKM_FIXTURES.some((fixture) => isLegacyPreviewUMKMIdentity({ id: result.id, slug: result.data.slug }, fixture))) return undefined;
     return result ? mapPublicUMKM(result.id, result.data) : undefined;
   } catch (error) {
     console.error('[Firestore Service] Gagal mengambil UMKM detail:', error);
@@ -118,7 +121,9 @@ export async function fetchUMKMByCategory(categoryId: string): Promise<UMKM[]> {
   if (!db) return [];
   try {
     const docs = await listPublishedByCategory(db, categoryId, publicQueryApi);
-    return docs.map((item: { id: string; data: Record<string, any> }) => mapPublicUMKM(item.id, item.data));
+    return docs
+      .filter((item: { id: string; data: Record<string, any> }) => !isNetlifyPreview || !PREVIEW_UMKM_FIXTURES.some((fixture) => isLegacyPreviewUMKMIdentity({ id: item.id, slug: item.data.slug }, fixture)))
+      .map((item: { id: string; data: Record<string, any> }) => mapPublicUMKM(item.id, item.data));
   } catch (error) {
     console.error('[Firestore Service] Gagal mengambil UMKM kategori:', error);
     return [];
@@ -131,7 +136,9 @@ export async function fetchRelatedUMKM(categoryId: string, excludeSlug: string, 
   if (!db) return [];
   try {
     const docs = await listPublishedByCategory(db, categoryId, publicQueryApi, { excludeSlug, limit: count });
-    return docs.map((item: { id: string; data: Record<string, any> }) => mapPublicUMKM(item.id, item.data));
+    return docs
+      .filter((item: { id: string; data: Record<string, any> }) => !isNetlifyPreview || !PREVIEW_UMKM_FIXTURES.some((fixture) => isLegacyPreviewUMKMIdentity({ id: item.id, slug: item.data.slug }, fixture)))
+      .map((item: { id: string; data: Record<string, any> }) => mapPublicUMKM(item.id, item.data));
   } catch (error) {
     console.error('[Firestore Service] Gagal mengambil UMKM terkait:', error);
     return [];
@@ -144,7 +151,7 @@ export async function fetchAdminUMKM(request: Request): Promise<UMKM[]> {
   const admin = await verifyAdminSession(request);
   if (!admin.verified) return [];
   const documents = await firestoreList(request, admin, UMKM_COLLECTION);
-  return documents.map((item) => {
+  return documents.filter((item) => !isNetlifyPreview || !PREVIEW_UMKM_FIXTURES.some((fixture) => isLegacyPreviewUMKMIdentity(item, fixture))).map((item) => {
     const d = item;
     return {
       id: d.id, name: d.name || '', slug: d.slug || d.id, categoryId: d.categoryId || '',

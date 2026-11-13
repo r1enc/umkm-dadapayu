@@ -14,6 +14,7 @@ import { verifyAdminSession } from '../firebase/verifyAdmin';
 import { listDemoCategories } from '../dev/demoStore';
 import { findActiveCategoryById, findActiveCategoryBySlug } from '../firebase/firestorePublicCore.mjs';
 import { isNetlifyPreview } from '../netlifyPreview';
+import { PREVIEW_CATEGORY_SPECS, isLegacyPreviewCategoryIdentity } from '../admin/previewSeedData.mjs';
 
 const CATEGORIES_COLLECTION = 'categories';
 
@@ -23,7 +24,7 @@ export async function fetchAdminCategories(request: Request): Promise<Category[]
   const admin = await verifyAdminSession(request);
   if (!admin.verified) return [];
   const documents = await firestoreList(request, admin, CATEGORIES_COLLECTION);
-  return documents.map((data) => ({
+  return documents.filter((data) => !isNetlifyPreview || !PREVIEW_CATEGORY_SPECS.some((spec) => isLegacyPreviewCategoryIdentity(data, spec))).map((data) => ({
     id: data.id, name: data.name || '', slug: data.slug || data.id,
     sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 99, active: data.active === true,
     createdAt: data.createdAt, updatedAt: data.updatedAt,
@@ -59,6 +60,7 @@ export async function fetchCategories(): Promise<Category[]> {
     const categories: Category[] = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
+      if (isNetlifyPreview && PREVIEW_CATEGORY_SPECS.some((spec) => isLegacyPreviewCategoryIdentity({ id: doc.id, slug: data.slug }, spec))) return;
       categories.push({
         id: doc.id,
         name: data.name || '',
@@ -83,6 +85,7 @@ export async function fetchCategoryBySlug(slug: string): Promise<Category | unde
   if (!db) return undefined;
   try {
     const result = await findActiveCategoryBySlug(db, slug, { collection, doc, getDoc, getDocs, limit, query, where });
+    if (result && isNetlifyPreview && PREVIEW_CATEGORY_SPECS.some((spec) => isLegacyPreviewCategoryIdentity({ id: result.id, slug: result.data.slug }, spec))) return undefined;
     return result ? {
       id: result.id, name: result.data.name || '', slug: result.data.slug || result.id,
       sortOrder: typeof result.data.sortOrder === 'number' ? result.data.sortOrder : 99, active: true,
@@ -100,6 +103,7 @@ export async function fetchCategoryById(id: string): Promise<Category | undefine
   if (!db) return undefined;
   try {
     const result = await findActiveCategoryById(db, id, { doc, getDoc });
+    if (result && isNetlifyPreview && PREVIEW_CATEGORY_SPECS.some((spec) => isLegacyPreviewCategoryIdentity({ id: result.id, slug: result.data.slug }, spec))) return undefined;
     return result ? {
       id: result.id, name: result.data.name || '', slug: result.data.slug || result.id,
       sortOrder: typeof result.data.sortOrder === 'number' ? result.data.sortOrder : 99, active: true,

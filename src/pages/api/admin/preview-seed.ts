@@ -9,17 +9,18 @@ import {
 import { verifyAdminSession } from '../../../lib/firebase/verifyAdmin';
 import { isNetlifyPreview } from '../../../lib/netlifyPreview';
 import {
-  PREVIEW_CATEGORY_NAME_PREFIX,
   PREVIEW_CATEGORY_SPECS,
   PREVIEW_CLEANUP_CONFIRMATION,
   PREVIEW_SEED_CONFIRMATION,
-  PREVIEW_SEED_MARKER,
-  PREVIEW_SEED_NAME_PREFIX,
   PREVIEW_UMKM_FIXTURES,
+  isOwnedLegacyPreviewCategory,
+  isOwnedLegacyPreviewUMKM,
   isOwnedPreviewCategory,
   isOwnedPreviewUMKM,
+  legacyPreviewCategoryDocumentId,
   previewCategoryDocumentId,
   previewUMKMDocumentId,
+  toPreviewCategoryDocument,
   toPreviewUMKMDocument,
 } from '../../../lib/admin/previewSeedData.mjs';
 
@@ -29,13 +30,26 @@ function json(data: Record<string, unknown>, status = 200) {
   return Response.json(data, { status, headers: noStore });
 }
 
-function ownedCategoryName(spec: (typeof PREVIEW_CATEGORY_SPECS)[number]) {
-  return `${PREVIEW_CATEGORY_NAME_PREFIX} ${spec.label}`;
+async function rejectLegacySeedRecords(request: Request, admin: Awaited<ReturnType<typeof verifyAdminSession>>) {
+  for (const fixture of PREVIEW_UMKM_FIXTURES) {
+    const slug = `uji-preview-netlify-${fixture.key}`;
+    const legacy = await firestoreQueryEqual(request, admin, 'umkms', 'slug', slug);
+    if (!legacy.length) continue;
+    if (legacy.length !== 1 || !isOwnedLegacyPreviewUMKM(legacy[0], fixture)) {
+      throw new Response('Salah satu nama profil yang disiapkan sudah digunakan dokumen lain. Tidak ada dokumen yang diubah.', { status: 409 });
+    }
+    throw new Response('Profil contoh dengan format lama masih tersimpan. Hapus melalui tindakan manual pada panel ini sebelum menyiapkan data baru.', { status: 409 });
+  }
 }
 
 async function seedData(request: Request, admin: Awaited<ReturnType<typeof verifyAdminSession>>) {
+  await rejectLegacySeedRecords(request, admin);
   const allCategories = await firestoreList(request, admin, 'categories');
-  const activeCategories = allCategories.filter((item) => item.active === true);
+  const seedCategoryIds = new Set(PREVIEW_CATEGORY_SPECS.flatMap((spec) => [
+    previewCategoryDocumentId(spec.key),
+    legacyPreviewCategoryDocumentId(spec.key),
+  ]));
+  const activeCategories = allCategories.filter((item) => item.active === true && !seedCategoryIds.has(item.id));
   const usedCategoryIds = new Set<string>();
   const categoryIds = new Map<string, string>();
   let createdCategories = 0;
@@ -58,8 +72,8 @@ async function seedData(request: Request, admin: Awaited<ReturnType<typeof verif
 
     const existing = await firestoreQueryEqual(request, admin, 'categories', 'slug', spec.slug);
     if (existing.length) {
-      if (existing.length !== 1 || !isOwnedPreviewCategory(existing[0], spec) || existing[0].active !== true) {
-        throw new Response('Slug kategori data uji sudah digunakan dokumen lain. Tidak ada dokumen yang diubah.', { status: 409 });
+      if (existing.length !== 1 || !isOwnedPreviewCategory(existing[0], spec)) {
+        throw new Response(`Nama kategori "${spec.label}" sudah digunakan. Tidak ada dokumen yang diubah.`, { status: 409 });
       }
       categoryIds.set(spec.key, existing[0].id);
       reusedCategories++;
@@ -68,14 +82,7 @@ async function seedData(request: Request, admin: Awaited<ReturnType<typeof verif
 
     const id = previewCategoryDocumentId(spec.key);
     const now = new Date().toISOString();
-    await firestoreCreate(request, admin, 'categories', {
-      name: ownedCategoryName(spec),
-      slug: spec.slug,
-      sortOrder: spec.sortOrder,
-      active: true,
-      createdAt: now,
-      updatedAt: now,
-    }, id);
+    await firestoreCreate(request, admin, 'categories', toPreviewCategoryDocument(spec, now), id);
     categoryIds.set(spec.key, id);
     createdCategories++;
   }
@@ -83,22 +90,18 @@ async function seedData(request: Request, admin: Awaited<ReturnType<typeof verif
   let createdUMKM = 0;
   let existingUMKM = 0;
   for (const fixture of PREVIEW_UMKM_FIXTURES) {
-    const slug = `uji-preview-netlify-${fixture.key}`;
-    const matches = await firestoreQueryEqual(request, admin, 'umkms', 'slug', slug);
+    const matches = await firestoreQueryEqual(request, admin, 'umkms', 'slug', fixture.slug);
     if (matches.length) {
       if (matches.length !== 1 || !isOwnedPreviewUMKM(matches[0], fixture)) {
-        throw new Response(`Slug ${slug} sudah digunakan dokumen lain. Tidak ada dokumen yang ditimpa.`, { status: 409 });
+        throw new Response(`Nama profil "${fixture.name}" sudah digunakan. Tidak ada dokumen yang ditimpa.`, { status: 409 });
       }
       existingUMKM++;
       continue;
     }
 
     const categoryId = categoryIds.get(fixture.categoryKey);
-    if (!categoryId) throw new Error(`Kategori uji ${fixture.categoryKey} tidak tersedia.`);
+    if (!categoryId) throw new Error(`Kategori ${fixture.categoryKey} tidak tersedia.`);
     const data = toPreviewUMKMDocument(fixture, categoryId);
-    if (!data.description.startsWith(PREVIEW_SEED_MARKER) || !data.name.startsWith(PREVIEW_SEED_NAME_PREFIX)) {
-      throw new Error('Penanda dokumen uji tidak valid.');
-    }
     await firestoreCreate(request, admin, 'umkms', data, previewUMKMDocumentId(fixture.key));
     createdUMKM++;
   }
@@ -113,42 +116,53 @@ async function cleanupData(request: Request, admin: Awaited<ReturnType<typeof ve
   let preservedCategories = 0;
 
   for (const fixture of PREVIEW_UMKM_FIXTURES) {
-    const slug = `uji-preview-netlify-${fixture.key}`;
-    const matches = await firestoreQueryEqual(request, admin, 'umkms', 'slug', slug);
-    if (!matches.length) continue;
-    if (matches.length !== 1 || !isOwnedPreviewUMKM(matches[0], fixture)) {
-      skippedUMKM++;
-      continue;
+    const candidates = [
+      { slug: fixture.slug, isOwned: isOwnedPreviewUMKM },
+      { slug: `uji-preview-netlify-${fixture.key}`, isOwned: isOwnedLegacyPreviewUMKM },
+    ];
+    for (const candidate of candidates) {
+      const matches = await firestoreQueryEqual(request, admin, 'umkms', 'slug', candidate.slug);
+      if (!matches.length) continue;
+      if (matches.length !== 1 || !candidate.isOwned(matches[0], fixture)) {
+        skippedUMKM++;
+        continue;
+      }
+      await firestoreDelete(request, admin, 'umkms', matches[0].id);
+      removedUMKM++;
     }
-    await firestoreDelete(request, admin, 'umkms', matches[0].id);
-    removedUMKM++;
   }
 
   for (const spec of PREVIEW_CATEGORY_SPECS) {
-    const matches = await firestoreQueryEqual(request, admin, 'categories', 'slug', spec.slug);
-    if (!matches.length) continue;
-    if (matches.length !== 1 || !isOwnedPreviewCategory(matches[0], spec)) {
-      preservedCategories++;
-      continue;
+    const candidates = [
+      { slug: spec.slug, isOwned: isOwnedPreviewCategory },
+      { slug: spec.legacySlug, isOwned: isOwnedLegacyPreviewCategory },
+    ];
+    for (const candidate of candidates) {
+      const matches = await firestoreQueryEqual(request, admin, 'categories', 'slug', candidate.slug);
+      if (!matches.length) continue;
+      if (matches.length !== 1 || !candidate.isOwned(matches[0], spec)) {
+        preservedCategories++;
+        continue;
+      }
+      const usedByUMKM = await firestoreQueryEqual(request, admin, 'umkms', 'categoryId', matches[0].id);
+      if (usedByUMKM.length) {
+        preservedCategories++;
+        continue;
+      }
+      await firestoreDelete(request, admin, 'categories', matches[0].id);
+      removedCategories++;
     }
-    const usedByUMKM = await firestoreQueryEqual(request, admin, 'umkms', 'categoryId', matches[0].id);
-    if (usedByUMKM.length) {
-      preservedCategories++;
-      continue;
-    }
-    await firestoreDelete(request, admin, 'categories', matches[0].id);
-    removedCategories++;
   }
 
   return { removedUMKM, skippedUMKM, removedCategories, preservedCategories };
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  if (!isNetlifyPreview) return json({ error: 'Operasi ini hanya tersedia pada preview Netlify.' }, 404);
+  if (!isNetlifyPreview) return json({ error: 'Tindakan ini tidak tersedia.' }, 404);
 
   const requestOrigin = request.headers.get('Origin');
   if (!requestOrigin || requestOrigin !== new URL(request.url).origin) {
-    return json({ error: 'Permintaan harus berasal dari dashboard preview ini.' }, 403);
+    return json({ error: 'Permintaan harus berasal dari halaman ini.' }, 403);
   }
 
   const env = locals.runtime?.env as Record<string, string> | undefined;

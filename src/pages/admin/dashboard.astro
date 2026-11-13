@@ -45,18 +45,18 @@ const totalAll = allUMKM.length;
     {isNetlifyPreview && (
       <section class="rounded-2xl border border-amber-300 bg-amber-50 p-5 space-y-3">
         <div>
-          <h2 class="text-sm font-bold text-amber-950">Data Uji Preview</h2>
+          <h2 class="text-sm font-bold text-amber-950">Data Contoh Katalog</h2>
           <p class="mt-1 text-xs leading-relaxed text-amber-900">
-            Tindakan ini membuat 9 profil usaha contoh berstatus Konsep di Firestore project utama. Data tidak tampil di katalog publik.
-            Penghapusan hanya menyasar dokumen yang dibuat oleh alat uji ini.
+            Tindakan ini menyiapkan 9 profil usaha berstatus Konsep. Profil konsep tidak tampil di katalog umum dan tidak menimpa profil yang sudah tersedia.
+            Penghapusan hanya menyasar profil contoh yang dapat dikenali.
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
           <button id="preview-seed-create" type="button" class="rounded-lg bg-amber-800 px-4 py-2 text-xs font-bold text-white hover:bg-amber-900">
-            Siapkan 9 Data Uji
+            Siapkan Profil Contoh
           </button>
           <button id="preview-seed-cleanup" type="button" class="rounded-lg border border-amber-700 px-4 py-2 text-xs font-bold text-amber-950 hover:bg-amber-100">
-            Hapus Data Uji
+            Hapus Profil Contoh
           </button>
         </div>
         <p id="preview-seed-status" class="hidden text-xs font-semibold" role="status" aria-live="polite"></p>
@@ -230,15 +230,15 @@ const totalAll = allUMKM.length;
     async function runPreviewSeed(action: 'seed' | 'cleanup') {
       const isSeed = action === 'seed';
       const prompt = isSeed
-        ? 'Buat 9 data UMKM uji berstatus Konsep di Firestore project umkm-dadapayu? Kategori uji hanya dibuat jika kategori aktif yang ada tidak cukup. Data yang sudah ada tidak akan ditimpa.'
-        : 'Hapus hanya dokumen UMKM dan kategori uji yang dikenali dari alat preview ini? Data lain akan dipertahankan.';
+        ? 'Siapkan 9 profil usaha berstatus Konsep di katalog? Kategori baru hanya dibuat bila kategori yang sesuai belum tersedia. Profil yang sudah ada tidak akan ditimpa.'
+        : 'Hapus hanya profil contoh yang dikenali dari panel ini? Profil lainnya akan dipertahankan.';
       if (!window.confirm(prompt)) return;
 
       const button = isSeed ? createButton : cleanupButton;
       if (!button || !status) return;
       button.disabled = true;
       status.className = 'text-xs font-semibold text-amber-900';
-      status.textContent = isSeed ? 'Menyiapkan data uji di Firestore…' : 'Menghapus data uji yang dikenali…';
+      status.textContent = isSeed ? 'Menyiapkan profil usaha…' : 'Menghapus profil contoh yang dikenali…';
 
       try {
         const response = await fetch('/api/admin/preview-seed', {
@@ -250,16 +250,16 @@ const totalAll = allUMKM.length;
           }),
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Operasi data uji gagal.');
+        if (!response.ok) throw new Error(result.error || 'Operasi profil katalog gagal.');
 
         status.className = 'text-xs font-semibold text-emerald-800';
         status.textContent = isSeed
-          ? `Selesai. ${result.createdUMKM} UMKM dibuat, ${result.existingUMKM} sudah tersedia; ${result.createdCategories} kategori uji dibuat, ${result.reusedCategories} kategori dipakai ulang.`
-          : `Selesai. ${result.removedUMKM} UMKM dan ${result.removedCategories} kategori uji dihapus. ${result.skippedUMKM} dokumen dilewati karena tidak cocok sebagai data uji; ${result.preservedCategories} kategori dipertahankan karena masih digunakan.`;
+          ? `Selesai. ${result.createdUMKM} profil dibuat, ${result.existingUMKM} sudah tersedia; ${result.createdCategories} kategori dibuat, ${result.reusedCategories} kategori dipakai ulang.`
+          : `Selesai. ${result.removedUMKM} profil dan ${result.removedCategories} kategori contoh dihapus. ${result.skippedUMKM} dokumen dilewati karena tidak cocok; ${result.preservedCategories} kategori dipertahankan karena masih digunakan.`;
         window.setTimeout(() => window.location.reload(), 1500);
       } catch (error) {
         status.className = 'text-xs font-semibold text-red-800';
-        status.textContent = `Gagal: ${error instanceof Error ? error.message : 'Terjadi kesalahan saat memproses data uji.'}`;
+        status.textContent = `Gagal: ${error instanceof Error ? error.message : 'Terjadi kesalahan saat memproses profil katalog.'}`;
       } finally {
         button.disabled = false;
       }
