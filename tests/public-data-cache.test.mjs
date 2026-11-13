@@ -99,26 +99,19 @@ test('related UMKM query filters category, published status, excludes current sl
   ]);
 });
 
-test('development demo store loaders stay shared, while production services have no mock fallback', async () => {
-  const { createDemoStore } = await import('../src/lib/dev/demoStoreCore.mjs');
-  const store = createDemoStore(umkms.slice(0, 2), categories);
-  const home = await loadHomepageData(store.listCategories, store.listUMKM);
-  const before = home.totalUMKM;
-  const { id: _id, ...newDemoUMKM } = umkms[0];
-  store.createUMKM({ ...newDemoUMKM, name: 'Demo baru', slug: 'demo-baru' });
-  const catalog = await loadCatalogData(store.listCategories, store.listUMKM, { categorySlug: 'makanan' });
-  assert.equal(catalog.total, before + 1);
-
+test('catalog services use Firestore and do not substitute static/demo data', async () => {
   const [umkmService, categoryService] = await Promise.all([
     readFile(new URL('../src/lib/services/umkmService.ts', import.meta.url), 'utf8'),
     readFile(new URL('../src/lib/services/categoryService.ts', import.meta.url), 'utf8'),
   ]);
-  assert.doesNotMatch(umkmService, /mockUMKMList/);
-  assert.doesNotMatch(categoryService, /mockCategories/);
-  assert.match(umkmService, /if \(isDev\) return listDemoUMKM/);
-  assert.match(umkmService, /if \(!isFirebaseConfigured\(\)\) return \[\]/);
-  assert.match(categoryService, /if \(isDev\) return listDemoCategories/);
-  assert.match(categoryService, /if \(!isFirebaseConfigured\(\)\) return \[\]/);
+  assert.doesNotMatch(umkmService, /mockUMKMList|listDemoUMKM|demoStore/);
+  assert.doesNotMatch(categoryService, /mockCategories|listDemoCategories|demoStore/);
+  assert.match(umkmService, /requireFirestoreDb\(\)/);
+  assert.match(categoryService, /requireFirestoreDb\(\)/);
+  assert.match(umkmService, /readFirestore\('UMKM'/);
+  assert.match(categoryService, /readFirestore\('kategori'/);
+  assert.doesNotMatch(umkmService, /!isFirebaseConfigured\(\)\) return \[\]/);
+  assert.doesNotMatch(categoryService, /!isFirebaseConfigured\(\)\) return \[\]/);
 });
 
 function createCache() {

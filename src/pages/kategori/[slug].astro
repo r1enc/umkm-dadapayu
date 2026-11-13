@@ -5,6 +5,7 @@ import UMKMCard from '../../components/UMKMCard.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import { fetchCategoryBySlug } from '../../lib/services/categoryService';
 import { fetchUMKMByCategory } from '../../lib/services/umkmService';
+import type { Category, UMKM } from '../../types';
 
 const { slug } = Astro.params;
 
@@ -12,38 +13,57 @@ if (!slug) {
   return Astro.redirect('/kategori');
 }
 
-const category = await fetchCategoryBySlug(slug);
-
-if (!category) {
-  Astro.response.status = 404;
-  return Astro.redirect('/404');
+let category: Category | undefined;
+let catalogError = '';
+try {
+  category = await fetchCategoryBySlug(slug);
+} catch (error) {
+  console.error('[CategoryPage] Firestore category request failed:', error);
+  catalogError = 'Kategori tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.';
 }
 
-const umkmList = await fetchUMKMByCategory(category.id);
+if (!category) {
+  if (catalogError) {
+    Astro.response.status = 503;
+  } else {
+  Astro.response.status = 404;
+  return Astro.redirect('/404');
+  }
+}
+
+let umkmList: UMKM[] = [];
+if (category) {
+  try {
+    umkmList = await fetchUMKMByCategory(category.id);
+  } catch (error) {
+    console.error('[CategoryPage] Firestore UMKM request failed:', error);
+    catalogError = 'Daftar UMKM pada kategori ini tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.';
+  }
+}
 
 const breadcrumbItems = [
   { name: 'Kategori Usaha', url: '/kategori' },
-  { name: category.name },
+  ...(category ? [{ name: category.name }] : []),
 ];
 
 ---
 
 <Layout
-  title={`Kategori ${category.name} - UMKM Desa Dadapayu`}
-  description={`Daftar UMKM dan produk lokal dalam bidang ${category.name} di Kalurahan Dadapayu, Semanu, Gunungkidul.`}
+  title={`${category ? `Kategori ${category.name}` : 'Kategori'} - UMKM Desa Dadapayu`}
+  description={category ? `Daftar UMKM dalam bidang ${category.name} di Kalurahan Dadapayu.` : 'Informasi kategori tidak tersedia.'}
 >
   <div class="bg-gray-50 border-b border-gray-200">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
       <Breadcrumb items={breadcrumbItems} />
       <div class="pt-2 pb-6">
         <div class="inline-flex items-center gap-2 rounded-full bg-village-100 px-3 py-1 text-xs font-semibold text-village-800 mb-2">
-          Kategori Pilihan
+          {catalogError ? 'Data tidak tersedia' : 'Kategori Usaha'}
         </div>
         <h1 class="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-          {category.name}
+          {category?.name || 'Kategori usaha'}
         </h1>
         <p class="mt-2 text-sm sm:text-base text-gray-600 max-w-3xl">
-          Menampilkan seluruh pelaku usaha dan pengrajin Dadapayu yang terdaftar di bidang {category.name.toLowerCase()}.
+          {catalogError || `Daftar UMKM yang dipublikasikan pada kategori ${category?.name || ''}.`}
         </p>
       </div>
     </div>
@@ -53,6 +73,7 @@ const breadcrumbItems = [
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       
       <!-- Bar Tindakan -->
+      {catalogError && <p class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{catalogError}</p>}
       <div class="flex items-center justify-between pb-6 border-b border-gray-100 mb-8">
         <p class="text-xs sm:text-sm text-gray-600 font-medium">
           Ditemukan <span class="font-bold text-gray-900">{umkmList.length}</span> UMKM
@@ -72,17 +93,17 @@ const breadcrumbItems = [
       {umkmList.length > 0 ? (
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {umkmList.map((umkm) => (
-            <UMKMCard umkm={umkm} />
+            <UMKMCard umkm={umkm} categoryName={category?.name} />
           ))}
         </div>
-      ) : (
+      ) : !catalogError ? (
         <EmptyState
-          title={`Belum Ada UMKM di Kategori ${category.name}`}
-          message="Saat ini belum ada pelaku usaha yang terdaftar di kategori ini. Silakan cek kategori lain."
+          title={`Belum Ada UMKM di Kategori ${category?.name || ''}`}
+          message="Saat ini belum ada UMKM yang dipublikasikan pada kategori ini."
           resetUrl="/katalog"
           resetLabel="Kembali ke Seluruh Katalog"
         />
-      )}
+      ) : null}
 
     </div>
   </section>

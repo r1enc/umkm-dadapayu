@@ -11,8 +11,7 @@
     "check": "astro check",
     "test:rules": "firebase emulators:exec --only firestore --project demo-umkm-dadapayu-test \"node --test tests/security-rules.test.mjs\"",
     "test:admin-verification": "node tests/admin-verification.test.mjs",
-    "test:firestore-rest": "node --test tests/firestore-rest.test.mjs",
-    "test:demo-store": "node --test tests/demo-store.test.mjs"
+    "test:firestore-rest": "node --test tests/firestore-rest.test.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.13",

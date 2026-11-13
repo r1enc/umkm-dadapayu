@@ -2,7 +2,13 @@
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { fetchCategories } from '../../../lib/services/categoryService';
 
-const categories = await fetchCategories();
+let categories;
+try {
+  categories = await fetchCategories();
+} catch (error) {
+  console.error('[AdminUMKMCreate] Firestore category request failed:', error);
+  return new Response('Kategori tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.', { status: 503 });
+}
 ---
 
 <AdminLayout title="Tambah UMKM Baru" activeNav="umkm">
@@ -47,7 +53,7 @@ const categories = await fetchCategories();
               id="name"
               type="text"
               required
-              placeholder="Contoh: Tiwul Manis Bu Sri"
+              placeholder="Masukkan nama usaha"
               class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:border-village-600 shadow-2xs"
             />
           </div>
@@ -78,7 +84,7 @@ const categories = await fetchCategories();
               id="slug"
               type="text"
               required
-              placeholder="tiwul-manis-bu-sri"
+              placeholder="nama-usaha"
               class="w-full rounded-xl border border-gray-300 p-3 text-sm font-mono text-xs focus:outline-none focus:border-village-600 shadow-2xs bg-gray-50"
             />
           </div>
@@ -556,7 +562,7 @@ const categories = await fetchCategories();
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="sm:col-span-2">
-            <input type="text" placeholder="Nama Produk (misal: Tiwul Instan 500gr)" class="prod-name w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" required />
+            <input type="text" placeholder="Nama produk atau layanan" class="prod-name w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" required />
           </div>
           <div>
             <input type="number" placeholder="Harga (Rp) opsional" class="prod-price w-full rounded-xl border border-gray-300 p-2.5 text-xs sm:text-sm bg-white" />

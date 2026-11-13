@@ -2,10 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Breadcrumb from '../../components/Breadcrumb.astro';
 import UMKMCard from '../../components/UMKMCard.astro';
-import {
-  formatRupiah,
-  createWhatsAppLink,
-} from '../../data/mockData';
+import { formatRupiah, createWhatsAppLink } from '../../lib/catalogFormatters';
 import { fetchUMKMBySlug, fetchRelatedUMKM } from '../../lib/services/umkmService';
 import { fetchCategoryById } from '../../lib/services/categoryService';
 import { getOptimizedImageUrl } from '../../lib/cloudinary';
@@ -16,7 +13,16 @@ if (!slug) {
   return Astro.redirect('/katalog');
 }
 
-const umkm = await fetchUMKMBySlug(slug);
+let umkm;
+try {
+  umkm = await fetchUMKMBySlug(slug);
+} catch (error) {
+  console.error('[UMKMDetail] Firestore request failed:', error);
+  return new Response('Data UMKM tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
 
 if (!umkm) {
   // Mengembalikan status 404 jika slug tidak terdaftar
@@ -24,10 +30,28 @@ if (!umkm) {
   return Astro.redirect('/404');
 }
 
-const category = await fetchCategoryById(umkm.categoryId);
+let category;
+try {
+  category = await fetchCategoryById(umkm.categoryId);
+} catch (error) {
+  console.error('[UMKMDetail] Firestore category request failed:', error);
+  return new Response('Informasi kategori usaha tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
 
 // UMKM terkait dalam kategori yang sama (selain UMKM saat ini)
-const relatedUMKM = await fetchRelatedUMKM(umkm.categoryId, umkm.slug, 3);
+let relatedUMKM = [];
+try {
+  relatedUMKM = await fetchRelatedUMKM(umkm.categoryId, umkm.slug, 3);
+} catch (error) {
+  console.error('[UMKMDetail] Firestore related UMKM request failed:', error);
+  return new Response('Data usaha terkait tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
 
 // Breadcrumb items
 const breadcrumbItems = [
@@ -335,7 +359,7 @@ const jsonLd = {
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {relatedUMKM.map((item) => (
-              <UMKMCard umkm={item} />
+              <UMKMCard umkm={item} categoryName={category?.name} />
             ))}
           </div>
         </section>

@@ -5,8 +5,19 @@ import UMKMCard from '../components/UMKMCard.astro';
 import { fetchCategories } from '../lib/services/categoryService';
 import { fetchPublishedUMKM } from '../lib/services/umkmService';
 import { loadHomepageData } from '../lib/services/publicDataCore.mjs';
+import type { Category, UMKM } from '../types';
 
-const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCategories, fetchPublishedUMKM);
+let categories: Category[] = [];
+let featuredUMKM: UMKM[] = [];
+let allPublished: UMKM[] = [];
+let totalUMKM = 0;
+let catalogError = '';
+try {
+  ({ categories, featuredUMKM, allPublished, totalUMKM } = await loadHomepageData(fetchCategories, fetchPublishedUMKM));
+} catch (error) {
+  console.error('[Homepage] Firestore catalog request failed:', error);
+  catalogError = 'Katalog belum dapat dimuat dari Firestore. Silakan coba lagi nanti.';
+}
 
 ---
 
@@ -30,7 +41,7 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
           </h1>
 
           <p class="text-base sm:text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-            Dari kuliner tiwul legendaris, anyaman bambu, madu klanceng hutan karst, hingga kerajinan kayu jati. Hubungi langsung para pengrajin dan pemilik usaha tanpa perantara.
+            Temukan usaha warga Kalurahan Dadapayu, lihat informasi produk, dan hubungi pemilik usaha secara langsung.
           </p>
 
           <!-- Form Pencarian Cepat -->
@@ -43,7 +54,7 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
                 <input
                   type="text"
                   name="q"
-                  placeholder="Cari UMKM atau produk (contoh: Tiwul, Bambu, Madu...)"
+                  placeholder="Cari nama usaha atau produk"
                   class="w-full bg-transparent px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
                 />
               </div>
@@ -57,14 +68,6 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
                 </svg>
               </button>
             </form>
-            <div class="mt-2.5 flex items-center gap-2 text-xs text-gray-500 justify-center lg:justify-start">
-              <span>Paling sering dicari:</span>
-              <a href="/katalog?q=Tiwul" class="underline hover:text-village-700">Tiwul</a>
-              <span>•</span>
-              <a href="/katalog?q=Bambu" class="underline hover:text-village-700">Anyaman Bambu</a>
-              <span>•</span>
-              <a href="/katalog?q=Madu" class="underline hover:text-village-700">Madu Klanceng</a>
-            </div>
           </div>
         </div>
 
@@ -72,12 +75,11 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
         <div class="lg:col-span-5 relative">
           <div class="relative mx-auto max-w-md lg:max-w-none">
             <div class="overflow-hidden rounded-3xl bg-gray-100 shadow-xl border-4 border-white aspect-4/3 sm:aspect-square">
-              <img
-                src="https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=1000&q=80"
-                alt="Produk olahan pangan tradisional Dadapayu"
-                class="h-full w-full object-cover"
-                loading="eager"
-              />
+              {featuredUMKM[0]?.coverImage?.url ? (
+                <img src={featuredUMKM[0].coverImage.url} alt={featuredUMKM[0].coverImage.alt || featuredUMKM[0].name} class="h-full w-full object-cover" loading="eager" />
+              ) : (
+                <div class="flex h-full items-center justify-center text-sm text-gray-500">Foto usaha akan tampil di sini</div>
+              )}
             </div>
             <!-- Floating Badge Ringkasan -->
             <div class="absolute -bottom-6 -left-4 sm:left-4 rounded-2xl bg-white p-4 shadow-lg border border-gray-100 flex items-center gap-3">
@@ -87,8 +89,8 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
                 </svg>
               </div>
               <div>
-                <p class="text-xl font-bold text-gray-900">{totalUMKM}+ Unit Usaha</p>
-                <p class="text-xs text-gray-500">Terdaftar & Aktif Berproduksi</p>
+                <p class="text-xl font-bold text-gray-900">{totalUMKM} Unit Usaha</p>
+                <p class="text-xs text-gray-500">Usaha yang telah dipublikasikan</p>
               </div>
             </div>
           </div>
@@ -114,9 +116,13 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {categories.map((cat) => (
-          <CategoryCard category={cat} />
-        ))}
+        {catalogError ? (
+          <p class="col-span-full rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{catalogError}</p>
+        ) : categories.length ? (
+          categories.map((cat) => <CategoryCard category={cat} count={allPublished.filter((item) => item.categoryId === cat.id).length} />)
+        ) : (
+          <p class="col-span-full py-8 text-center text-sm text-gray-500">Belum ada kategori usaha yang tersedia.</p>
+        )}
       </div>
     </div>
   </section>
@@ -128,7 +134,7 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
         <div>
           <span class="text-xs font-bold uppercase tracking-wider text-primary-600">Pilihan Produk Lokal</span>
           <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">UMKM Unggulan Dadapayu</h2>
-          <p class="text-xs sm:text-sm text-gray-600 mt-1">Karya dan olahan pilihan yang menjadi ikon kebanggaan desa.</p>
+          <p class="text-xs sm:text-sm text-gray-600 mt-1">Usaha warga yang sudah dipublikasikan di katalog.</p>
         </div>
         <a
           href="/katalog"
@@ -142,9 +148,13 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {featuredUMKM.map((umkm) => (
-          <UMKMCard umkm={umkm} />
-        ))}
+        {catalogError ? (
+          <p class="col-span-full rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{catalogError}</p>
+        ) : featuredUMKM.length ? (
+          featuredUMKM.map((umkm) => <UMKMCard umkm={umkm} categoryName={categories.find((cat) => cat.id === umkm.categoryId)?.name} />)
+        ) : (
+          <p class="col-span-full py-8 text-center text-sm text-gray-500">Belum ada UMKM yang dipublikasikan.</p>
+        )}
       </div>
     </div>
   </section>
@@ -155,12 +165,11 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
         <div class="lg:col-span-5">
           <div class="aspect-4/3 rounded-3xl overflow-hidden shadow-lg border border-gray-100 bg-gray-50">
-            <img
-              src="https://images.unsplash.com/photo-1590736969955-71cc94801759?auto=format&fit=crop&w=1000&q=80"
-              alt="Anyaman bambu khas pedesaan Dadapayu"
-              loading="lazy"
-              class="h-full w-full object-cover"
-            />
+            {featuredUMKM[0]?.coverImage?.url ? (
+              <img src={featuredUMKM[0].coverImage.url} alt={featuredUMKM[0].coverImage.alt || featuredUMKM[0].name} loading="lazy" class="h-full w-full object-cover" />
+            ) : (
+              <div class="flex h-full items-center justify-center text-sm text-gray-500">Informasi usaha mengikuti data katalog.</div>
+            )}
           </div>
         </div>
         <div class="lg:col-span-7 space-y-4">
@@ -172,7 +181,7 @@ const { categories, featuredUMKM, totalUMKM } = await loadHomepageData(fetchCate
             Kalurahan Dadapayu terletak di Kapanewon Semanu, Kabupaten Gunungkidul. Memiliki bentang alam perbukitan karst yang subur untuk tanaman singkong, ketela pohon, pohon jati, serta rumpun bambu tali.
           </p>
           <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
-            Masyarakat Dadapayu mengolah kekayaan ini menjadi produk bernilai tinggi: tiwul manis yang legit, gaplek kering pilihan, anyaman besek bambu hantaran, peralatan makan kayu jati, hingga budidaya madu murni lebah klanceng.
+            Informasi produk, layanan, alamat, dan kontak ditampilkan berdasarkan data yang dimasukkan oleh pengelola katalog.
           </p>
 
           <div class="pt-2 flex flex-wrap gap-4">

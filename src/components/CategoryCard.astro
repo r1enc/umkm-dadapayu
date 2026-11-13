@@ -1,13 +1,12 @@
 ---
 import type { Category } from '../types';
-import { getCategoryUMKMCount } from '../data/mockData';
 
 interface Props {
   category: Category;
+  count: number;
 }
 
-const { category } = Astro.props;
-const count = getCategoryUMKMCount(category.id);
+const { category, count } = Astro.props;
 
 // Pilihan icon berdasarkan slug kategori
 let iconPath = 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'; // default belanja
@@ -36,7 +35,7 @@ if (category.slug.includes('kuliner')) {
       {category.name}
     </h3>
     <p class="text-xs text-gray-500 mt-0.5">
-      {count} UMKM terdaftar
+      {count} UMKM dipublikasikan
     </p>
   </div>
   <div class="text-gray-400 group-hover:text-village-700 transition group-hover:translate-x-1">

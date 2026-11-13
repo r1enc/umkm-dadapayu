@@ -4,9 +4,17 @@ import Breadcrumb from '../../components/Breadcrumb.astro';
 import CategoryCard from '../../components/CategoryCard.astro';
 import { fetchCategories } from '../../lib/services/categoryService';
 import { fetchPublishedUMKM } from '../../lib/services/umkmService';
+import type { Category, UMKM } from '../../types';
 
-const categories = await fetchCategories();
-const allPublished = await fetchPublishedUMKM();
+let categories: Category[] = [];
+let allPublished: UMKM[] = [];
+let catalogError = '';
+try {
+  [categories, allPublished] = await Promise.all([fetchCategories(), fetchPublishedUMKM()]);
+} catch (error) {
+  console.error('[Categories] Firestore catalog request failed:', error);
+  catalogError = 'Daftar kategori tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.';
+}
 const totalUMKM = allPublished.length;
 
 const breadcrumbItems = [
@@ -27,7 +35,7 @@ const breadcrumbItems = [
           Kategori Usaha Desa Dadapayu
         </h1>
         <p class="mt-2 text-sm sm:text-base text-gray-600 max-w-3xl">
-          Telusuri produk dan jasa unggulan desa berdasarkan kelompok industri dan bidang usaha. Total {totalUMKM} UMKM terdaftar dan siap melayani pesanan Anda.
+          {catalogError ? 'Kategori usaha sementara tidak tersedia.' : `${totalUMKM} UMKM telah dipublikasikan dalam katalog.`}
         </p>
       </div>
     </div>
@@ -35,11 +43,14 @@ const breadcrumbItems = [
 
   <section class="py-12 bg-white">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {catalogError ? (
+        <p class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{catalogError}</p>
+      ) : categories.length ? (
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
         {categories.map((cat) => (
           <div class="flex flex-col justify-between rounded-3xl border border-gray-200/90 bg-gray-50/40 p-6 sm:p-8 hover:border-village-300 hover:shadow-sm transition">
             <div class="space-y-4">
-              <CategoryCard category={cat} />
+              <CategoryCard category={cat} count={allPublished.filter((item) => item.categoryId === cat.id).length} />
               <p class="text-xs sm:text-sm text-gray-600 leading-relaxed pl-1">
                 Kumpulan pelaku usaha warga Dadapayu di bidang {cat.name.toLowerCase()} dengan keaslian bahan baku lokal dan kualitas terpercaya.
               </p>
@@ -59,6 +70,9 @@ const breadcrumbItems = [
           </div>
         ))}
       </div>
+      ) : (
+        <p class="py-10 text-center text-sm text-gray-500">Belum ada kategori usaha yang tersedia.</p>
+      )}
     </div>
   </section>
 </Layout>

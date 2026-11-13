@@ -28,11 +28,7 @@ Cloudinary configuration:
 - `PUBLIC_CLOUDINARY_CLOUD_NAME` is optional for displaying existing Cloudinary images and has a code fallback of `desa-dadapayu`.
 - Netlify preview disables upload signatures and Cloudinary deletion, so `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET` are not required in Netlify. Keep production secrets configured only on the Cloudflare deployment.
 
-## Real Firestore test data
-
-The dashboard's **Data Uji Preview** panel is available only in Netlify builds. After signing in with an existing Firestore admin account, an administrator can explicitly create nine draft test UMKM records and, only when the project has too few active categories, the minimum missing test categories. The action uses the admin cookie and Firebase ID token through the existing Firestore REST CRUD helpers, so Security Rules remain active. Repeating the operation skips its existing deterministic test records. The paired cleanup action deletes only records with the exact reserved IDs, slugs, and marker text; it leaves categories in place while any UMKM still references them.
-
-Test UMKM documents remain `draft`, so they are visible in the authenticated admin dashboard and do not enter the public catalog. No data is seeded during build or deployment.
+The public catalog and admin dashboard read UMKM and category records from Firestore. Product details are stored on their UMKM documents. An empty collection is shown as an empty state; Firestore access failures are reported separately. No sample records are created or removed during build or deployment.
 
 `ADMIN_REGISTRATION_KEY` is only declared in `src/env.d.ts` and is not read by the application. `ADMIN_SETUP_SECRET` in `.env.example` is also not referenced by current application code; neither is required for this preview build.
 

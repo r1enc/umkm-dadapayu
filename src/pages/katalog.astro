@@ -6,17 +6,29 @@ import EmptyState from '../components/EmptyState.astro';
 import { fetchCategories } from '../lib/services/categoryService';
 import { fetchPublishedUMKM } from '../lib/services/umkmService';
 import { loadCatalogData } from '../lib/services/publicDataCore.mjs';
+import type { Category, UMKM } from '../types';
 
 // Query parameters from URL (Server-Side)
 const searchParams = Astro.url.searchParams;
 const queryParam = searchParams.get('q') || '';
 const categoryParam = searchParams.get('kategori') || 'semua';
 
-const { categories, allPublished, items: filteredUMKM, total, category: activeCategory } = await loadCatalogData(
-  fetchCategories,
-  fetchPublishedUMKM,
-  { query: queryParam, categorySlug: categoryParam },
-);
+let categories: Category[] = [];
+let allPublished: UMKM[] = [];
+let filteredUMKM: UMKM[] = [];
+let total = 0;
+let activeCategory: Category | undefined;
+let catalogError = '';
+try {
+  ({ categories, allPublished, items: filteredUMKM, total, category: activeCategory } = await loadCatalogData(
+    fetchCategories,
+    fetchPublishedUMKM,
+    { query: queryParam, categorySlug: categoryParam },
+  ));
+} catch (error) {
+  console.error('[Catalog] Firestore catalog request failed:', error);
+  catalogError = 'Katalog tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.';
+}
 const totalAll = allPublished.length;
 
 const breadcrumbItems = [
@@ -66,7 +78,7 @@ const pageTitle = activeCategory
               type="text"
               name="q"
               value={queryParam}
-              placeholder="Cari nama UMKM atau jenis produk (contoh: Gatot, Besek, Madu, Singkong)..."
+              placeholder="Cari nama usaha atau produk"
               class="w-full rounded-xl border border-gray-300 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 shadow-xs focus:border-village-600 focus:outline-none focus:ring-1 focus:ring-village-600"
             />
             {queryParam && (
@@ -137,6 +149,8 @@ const pageTitle = activeCategory
         </div>
       </div>
 
+      {catalogError && <p class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{catalogError}</p>}
+
       <!-- Ringkasan Hasil -->
       <div class="flex items-center justify-between py-6">
         <p id="results-count" class="text-xs sm:text-sm text-gray-600 font-medium">
@@ -147,7 +161,7 @@ const pageTitle = activeCategory
       </div>
 
       <!-- Grid Daftar UMKM -->
-      {filteredUMKM.length > 0 ? (
+      {!catalogError && filteredUMKM.length > 0 ? (
         <div id="umkm-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {filteredUMKM.map((umkm) => (
             <div
@@ -157,18 +171,18 @@ const pageTitle = activeCategory
               data-category={umkm.categoryId}
               data-products={umkm.products.map((p) => p.name.toLowerCase()).join(' ')}
             >
-              <UMKMCard umkm={umkm} />
+              <UMKMCard umkm={umkm} categoryName={categories.find((cat) => cat.id === umkm.categoryId)?.name} />
             </div>
           ))}
         </div>
-      ) : (
+      ) : !catalogError ? (
         <EmptyState
-          title="Tidak Ada UMKM yang Sesuai"
-          message={`Pencarian "${queryParam || activeCategory?.name}" tidak menemukan hasil. Silakan periksa ejaan kata atau reset filter kategori.`}
+          title={allPublished.length === 0 ? 'Belum Ada UMKM' : 'Tidak Ada UMKM yang Sesuai'}
+          message={allPublished.length === 0 ? 'Belum ada UMKM yang dipublikasikan di katalog.' : `Pencarian "${queryParam || activeCategory?.name || ''}" tidak menemukan hasil. Silakan periksa ejaan kata atau reset filter kategori.`}
           resetUrl="/katalog"
           resetLabel="Lihat Seluruh UMKM Dadapayu"
         />
-      )}
+      ) : null}
 
       <!-- Kontainer Empty State untuk filter instan client-side -->
       <div id="client-empty-state" class="hidden">

@@ -3,8 +3,6 @@ import AdminLayout from '../../../../layouts/AdminLayout.astro';
 import { fetchCategories } from '../../../../lib/services/categoryService';
 import { firestoreData, firestoreGet } from '../../../../lib/firebase/firestoreRest';
 import { verifyAdminSession } from '../../../../lib/firebase/verifyAdmin';
-import { getDemoUMKM } from '../../../../lib/dev/demoStore';
-import { isNetlifyPreview } from '../../../../lib/netlifyPreview';
 import type { UMKM } from '../../../../types';
 
 const { id } = Astro.params;
@@ -13,27 +11,31 @@ if (!id) {
   return Astro.redirect('/admin/umkm');
 }
 
-const categories = await fetchCategories();
+let categories;
+try {
+  categories = await fetchCategories();
+} catch (error) {
+  console.error('[AdminUMKMEdit] Firestore category request failed:', error);
+  return new Response('Kategori tidak dapat dimuat dari Firestore. Silakan coba lagi nanti.', { status: 503 });
+}
 
 // Fetch UMKM menggunakan Firebase ID Token dari sesi yang diverifikasi server.
 let umkmData: UMKM | null = null;
 try {
-  if (import.meta.env.DEV && !isNetlifyPreview) {
-    umkmData = getDemoUMKM(id);
-  } else {
-    const admin = await verifyAdminSession(Astro.request);
-    if (!admin.verified) throw new Error('Sesi admin tidak valid.');
-    const d = firestoreData(await firestoreGet(Astro.request, admin, 'umkms', id));
-    umkmData = {
-      id, name: d.name || '', slug: d.slug || id, categoryId: d.categoryId || '', shortDescription: d.shortDescription || '',
-      description: d.description || '', coverImage: d.coverImage || { publicId: '', url: '/images/placeholder-umkm.jpg' },
-      gallery: Array.isArray(d.gallery) ? d.gallery : [], address: d.address || '', mapsUrl: d.mapsUrl || '',
-      whatsapp: d.whatsapp || '', openingHours: d.openingHours || '', products: Array.isArray(d.products) ? d.products : [],
-      status: d.status || 'published', createdAt: d.createdAt || '', updatedAt: d.updatedAt || '',
-    };
-  }
+  const admin = await verifyAdminSession(Astro.request);
+  if (!admin.verified) throw new Error('Sesi admin tidak valid. Silakan masuk kembali.');
+  const d = firestoreData(await firestoreGet(Astro.request, admin, 'umkms', id));
+  if (!d) return Astro.redirect('/admin/umkm');
+  umkmData = {
+    id, name: d.name || '', slug: d.slug || id, categoryId: d.categoryId || '', shortDescription: d.shortDescription || '',
+    description: d.description || '', coverImage: d.coverImage || { publicId: '', url: '' },
+    gallery: Array.isArray(d.gallery) ? d.gallery : [], address: d.address || '', mapsUrl: d.mapsUrl || '',
+    whatsapp: d.whatsapp || '', openingHours: d.openingHours || '', products: Array.isArray(d.products) ? d.products : [],
+    status: d.status || 'draft', createdAt: d.createdAt || '', updatedAt: d.updatedAt || '',
+  };
 } catch (e) {
   console.error('Error fetching UMKM by ID:', e);
+  return new Response('Data UMKM tidak dapat dimuat dari Firestore. Silakan periksa sesi admin dan coba lagi.', { status: 503 });
 }
 
 if (!umkmData) {

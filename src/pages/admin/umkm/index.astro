@@ -3,8 +3,14 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { fetchAdminUMKM } from '../../../lib/services/umkmService';
 import { fetchCategories } from '../../../lib/services/categoryService';
 
-const allUMKM = await fetchAdminUMKM(Astro.request);
-const categories = await fetchCategories();
+let allUMKM;
+let categories;
+try {
+  [allUMKM, categories] = await Promise.all([fetchAdminUMKM(Astro.request), fetchCategories()]);
+} catch (error) {
+  console.error('[AdminUMKMList] Firestore request failed:', error);
+  return new Response('Data UMKM tidak dapat dimuat dari Firestore. Periksa sesi admin dan koneksi, lalu coba lagi.', { status: 503 });
+}
 ---
 
 <AdminLayout title="Kelola UMKM" activeNav="umkm">

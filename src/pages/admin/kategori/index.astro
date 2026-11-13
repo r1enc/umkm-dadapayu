@@ -3,8 +3,14 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { fetchAdminCategories } from '../../../lib/services/categoryService';
 import { fetchAdminUMKM } from '../../../lib/services/umkmService';
 
-const categories = await fetchAdminCategories(Astro.request);
-const allUMKM = await fetchAdminUMKM(Astro.request);
+let categories;
+let allUMKM;
+try {
+  [categories, allUMKM] = await Promise.all([fetchAdminCategories(Astro.request), fetchAdminUMKM(Astro.request)]);
+} catch (error) {
+  console.error('[AdminCategories] Firestore request failed:', error);
+  return new Response('Data kategori tidak dapat dimuat dari Firestore. Periksa sesi admin dan koneksi, lalu coba lagi.', { status: 503 });
+}
 
 // Hitung berapa UMKM yang menggunakan masing-masing kategori
 const categoryUsageMap: Record<string, number> = {};
