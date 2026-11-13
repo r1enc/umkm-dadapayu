@@ -8,9 +8,7 @@ const currentYear = new Date().getFullYear();
       <!-- Kolom Identitas -->
       <div class="space-y-4 md:col-span-2">
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-village-700 text-white font-bold">
-            DP
-          </div>
+          <img src="/images/logo-dadapayu.png" alt="" aria-hidden="true" class="h-10 w-10 object-contain" />
           <div>
             <h3 class="text-base font-bold text-white tracking-tight">Katalog Digital UMKM</h3>
             <p class="text-xs text-gray-400">Kalurahan Dadapayu, Kapanewon Semanu, Gunungkidul</p>
@@ -53,8 +51,10 @@ const currentYear = new Date().getFullYear();
 
     <!-- Garis Pemisah & Hak Cipta -->
     <div class="mt-10 border-t border-gray-800 pt-6 text-center text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <p>&copy; {currentYear} Pemerintah Kalurahan Dadapayu. Hak cipta dilindungi.</p>
-      <p class="text-gray-400">Website Katalog Non-Komersial</p>
+      <div>
+        <p>{currentYear} Pemerintah Kalurahan Dadapayu</p>
+        <p class="mt-1">Portal informasi dan promosi UMKM Kalurahan Dadapayu.</p>
+      </div>
     </div>
   </div>
 </footer>

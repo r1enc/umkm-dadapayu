@@ -9,11 +9,13 @@ import type { Category, UMKM } from '../types';
 
 let categories: Category[] = [];
 let featuredUMKM: UMKM[] = [];
+let heroUMKM: UMKM[] = [];
 let allPublished: UMKM[] = [];
 let totalUMKM = 0;
 let catalogError = '';
 try {
   ({ categories, featuredUMKM, allPublished, totalUMKM } = await loadHomepageData(fetchCategories, fetchPublishedUMKM));
+  heroUMKM = featuredUMKM.filter((umkm) => Boolean(umkm.coverImage?.url));
 } catch (error) {
   console.error('[Homepage] Firestore catalog request failed:', error);
   catalogError = 'Katalog belum dapat dimuat dari Firestore. Silakan coba lagi nanti.';
@@ -74,9 +76,48 @@ try {
         <!-- Kolom Visual Potensi Desa -->
         <div class="lg:col-span-5 relative">
           <div class="relative mx-auto max-w-md lg:max-w-none">
-            <div class="overflow-hidden rounded-3xl bg-gray-100 shadow-xl border-4 border-white aspect-4/3 sm:aspect-square">
-              {featuredUMKM[0]?.coverImage?.url ? (
-                <img src={featuredUMKM[0].coverImage.url} alt={featuredUMKM[0].coverImage.alt || featuredUMKM[0].name} class="h-full w-full object-cover" loading="eager" />
+            <div class="relative overflow-hidden rounded-3xl bg-gray-100 shadow-xl border-4 border-white aspect-4/3 sm:aspect-square" data-umkm-carousel aria-roledescription="carousel" aria-label="Foto UMKM unggulan">
+              {heroUMKM.length ? (
+                <>
+                  {heroUMKM.map((umkm, index) => (
+                    <a
+                      href={`/umkm/${umkm.slug}`}
+                      class:list={[
+                        'absolute inset-0 block transition-opacity duration-700',
+                        index === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                      ]}
+                      data-carousel-slide
+                      aria-label={`Lihat profil ${umkm.name}`}
+                      aria-hidden={index === 0 ? 'false' : 'true'}
+                      tabindex={index === 0 ? 0 : -1}
+                    >
+                      <img
+                        src={umkm.coverImage.url}
+                        alt={umkm.coverImage.alt || umkm.name}
+                        class="h-full w-full object-cover"
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                      />
+                      <span class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-5 pt-12 text-left text-sm font-semibold text-white">
+                        {umkm.name}
+                      </span>
+                    </a>
+                  ))}
+                  {heroUMKM.length > 1 && (
+                    <>
+                      <button type="button" data-carousel-previous aria-label="Foto UMKM sebelumnya" class="absolute left-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-village-700">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      </button>
+                      <button type="button" data-carousel-next aria-label="Foto UMKM berikutnya" class="absolute right-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-village-700">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      </button>
+                      <div class="absolute bottom-2 right-3 z-10 flex gap-1.5" aria-label="Pilih foto UMKM">
+                        {heroUMKM.map((umkm, index) => (
+                          <button type="button" data-carousel-go={index} aria-label={`Tampilkan foto ${umkm.name}`} aria-current={index === 0 ? 'true' : undefined} class:list={['h-2.5 w-2.5 rounded-full border border-white shadow-sm', index === 0 ? 'bg-white' : 'bg-white/50']} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
               ) : (
                 <div class="flex h-full items-center justify-center text-sm text-gray-500">Foto usaha akan tampil di sini</div>
               )}
@@ -165,11 +206,7 @@ try {
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
         <div class="lg:col-span-5">
           <div class="aspect-4/3 rounded-3xl overflow-hidden shadow-lg border border-gray-100 bg-gray-50">
-            {featuredUMKM[0]?.coverImage?.url ? (
-              <img src={featuredUMKM[0].coverImage.url} alt={featuredUMKM[0].coverImage.alt || featuredUMKM[0].name} loading="lazy" class="h-full w-full object-cover" />
-            ) : (
-              <div class="flex h-full items-center justify-center text-sm text-gray-500">Informasi usaha mengikuti data katalog.</div>
-            )}
+            <img src="/images/dadapayu-landscape.jpg" alt="Pemandangan perbukitan karst dan suasana perdesaan Dadapayu" loading="lazy" class="h-full w-full object-cover" />
           </div>
         </div>
         <div class="lg:col-span-7 space-y-4">
@@ -220,3 +257,70 @@ try {
     </div>
   </section>
 </Layout>
+
+<script>
+  const carousel = document.querySelector<HTMLElement>('[data-umkm-carousel]');
+
+  if (carousel) {
+    const slides = Array.from(carousel.querySelectorAll<HTMLAnchorElement>('[data-carousel-slide]'));
+    const indicators = Array.from(carousel.querySelectorAll<HTMLButtonElement>('[data-carousel-go]'));
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let activeIndex = 0;
+    let timer: number | undefined;
+
+    const showSlide = (index: number) => {
+      activeIndex = (index + slides.length) % slides.length;
+      slides.forEach((slide, slideIndex) => {
+        const isActive = slideIndex === activeIndex;
+        slide.classList.toggle('opacity-100', isActive);
+        slide.classList.toggle('opacity-0', !isActive);
+        slide.classList.toggle('pointer-events-none', !isActive);
+        slide.setAttribute('aria-hidden', String(!isActive));
+        slide.tabIndex = isActive ? 0 : -1;
+      });
+      indicators.forEach((indicator, indicatorIndex) => {
+        const isActive = indicatorIndex === activeIndex;
+        indicator.classList.toggle('bg-white', isActive);
+        indicator.classList.toggle('bg-white/50', !isActive);
+        if (isActive) indicator.setAttribute('aria-current', 'true');
+        else indicator.removeAttribute('aria-current');
+      });
+    };
+
+    const stopAutoplay = () => {
+      window.clearInterval(timer);
+      timer = undefined;
+    };
+
+    const startAutoplay = () => {
+      stopAutoplay();
+      if (slides.length > 1 && !reducedMotion.matches) {
+        timer = window.setInterval(() => showSlide(activeIndex + 1), 5000);
+      }
+    };
+
+    carousel.querySelector('[data-carousel-previous]')?.addEventListener('click', () => {
+      showSlide(activeIndex - 1);
+      startAutoplay();
+    });
+    carousel.querySelector('[data-carousel-next]')?.addEventListener('click', () => {
+      showSlide(activeIndex + 1);
+      startAutoplay();
+    });
+    indicators.forEach((indicator) => {
+      indicator.addEventListener('click', () => {
+        showSlide(Number(indicator.dataset.carouselGo));
+        startAutoplay();
+      });
+    });
+    carousel.addEventListener('mouseenter', stopAutoplay);
+    carousel.addEventListener('mouseleave', startAutoplay);
+    carousel.addEventListener('focusin', stopAutoplay);
+    carousel.addEventListener('focusout', (event) => {
+      if (!carousel.contains(event.relatedTarget as Node | null)) startAutoplay();
+    });
+    reducedMotion.addEventListener('change', startAutoplay);
+
+    startAutoplay();
+  }
+</script>
