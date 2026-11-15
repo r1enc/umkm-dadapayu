@@ -29,7 +29,7 @@ try {
   description="Jelajahi dan dukung ragam produk unggulan, olahan kuliner tradisional, kerajinan tangan, dan hasil bumi asli warga Kalurahan Dadapayu."
 >
   <!-- Hero Section -->
-  <section class="relative overflow-hidden bg-village-50 pt-9 pb-12 sm:pt-16 sm:pb-20 border-b border-village-100">
+  <section data-scroll-reveal class="relative overflow-hidden bg-village-50 pt-9 pb-12 sm:pt-16 sm:pb-20 border-b border-village-100">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-12 items-center">
         <!-- Kolom Teks -->
@@ -152,7 +152,7 @@ try {
   </section>
 
   <!-- Kategori Usaha Section -->
-  <section class="py-14 bg-village-50 border-b border-village-100">
+  <section data-scroll-reveal class="py-14 bg-village-50 border-b border-village-100">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div>
@@ -180,7 +180,7 @@ try {
   </section>
 
   <!-- UMKM Unggulan Section -->
-  <section class="py-16 bg-village-50">
+  <section data-scroll-reveal class="py-16 bg-village-50">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div>
@@ -212,7 +212,7 @@ try {
   </section>
 
   <!-- Sekilas Tentang Potensi Kalurahan Dadapayu -->
-  <section class="py-16 bg-village-50 border-t border-village-100">
+  <section data-scroll-reveal class="py-16 bg-village-50 border-t border-village-100">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
         <div class="lg:col-span-5">
@@ -249,7 +249,7 @@ try {
   </section>
 
   <!-- CTA Hubungi Desa / Pendaftaran UMKM -->
-  <section class="py-14 bg-village-800 text-white">
+  <section data-scroll-reveal class="py-14 bg-village-800 text-white">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center space-y-4">
       <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
         Memiliki Usaha atau Produk di Desa Dadapayu?
@@ -270,6 +270,33 @@ try {
 </Layout>
 
 <script>
+  const revealSections = Array.from(document.querySelectorAll<HTMLElement>('[data-scroll-reveal]'));
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (revealSections.length && !prefersReducedMotion && 'IntersectionObserver' in window) {
+    revealSections.forEach((section) => {
+      const bounds = section.getBoundingClientRect();
+      if (bounds.top < window.innerHeight * 0.85 && bounds.bottom > 0) {
+        section.classList.add('scroll-reveal-visible');
+      }
+    });
+
+    document.documentElement.classList.add('scroll-reveal-ready');
+
+    const revealObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('scroll-reveal-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+
+    revealSections.forEach((section) => {
+      if (!section.classList.contains('scroll-reveal-visible')) revealObserver.observe(section);
+    });
+  }
+
   const carousel = document.querySelector<HTMLElement>('[data-umkm-carousel]');
 
   if (carousel) {
