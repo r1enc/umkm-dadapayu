@@ -36,3 +36,16 @@
     font-family: 'Montserrat', sans-serif;
   }
 }
+
+.home-hero {
+  background:
+    radial-gradient(ellipse at 86% 18%, rgb(229 239 232 / 78%), transparent 36%),
+    radial-gradient(ellipse at 8% 92%, rgb(254 236 217 / 38%), transparent 34%),
+    linear-gradient(145deg, #f8fbf8 0%, #fff 58%, #fbfaf7 100%);
+}
+
+.home-hero-empty {
+  background:
+    radial-gradient(ellipse at 50% 42%, rgb(255 255 255 / 92%), transparent 60%),
+    linear-gradient(145deg, #edf4ef 0%, #f8f5ef 100%);
+}
