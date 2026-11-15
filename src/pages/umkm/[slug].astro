@@ -115,23 +115,23 @@ const jsonLd = {
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 
   <!-- Breadcrumbs & Header -->
-  <div class="bg-gray-50 border-b border-gray-200">
+  <div class="border-b border-village-200 bg-village-100">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
       <Breadcrumb items={breadcrumbItems} />
     </div>
   </div>
 
-  <article class="py-8 sm:py-12 bg-white">
+  <article class="bg-village-50 py-6 sm:py-10">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <!-- Grid Utama: Kolom Foto/Konten & Kolom Kontak/Aksi -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-12">
         
         <!-- KOLOM KIRI (Foto & Informasi Usaha) -->
-        <div class="lg:col-span-8 space-y-8">
+        <div class="contents lg:col-span-8 lg:block lg:space-y-8">
           
           <!-- Foto Utama & Galeri -->
-          <div class="space-y-4">
-            <div class="aspect-16/10 sm:aspect-16/9 w-full overflow-hidden rounded-3xl bg-gray-100 shadow-md border border-gray-200">
+          <div class="profile-gallery order-1 space-y-3 sm:space-y-4">
+            <div class="relative aspect-16/10 sm:aspect-16/9 w-full overflow-hidden rounded-[1.75rem] border border-village-200 bg-village-900 shadow-xl">
               <img
                 id="main-display-image"
                 src={optimizedCoverUrl}
@@ -139,6 +139,14 @@ const jsonLd = {
                 class="h-full w-full object-cover transition-opacity duration-300"
                 loading="eager"
               />
+              <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-village-900/95 via-village-900/65 to-transparent px-5 pb-5 pt-20 sm:px-8 sm:pb-8 sm:pt-28">
+                <div class="mb-2 flex flex-wrap items-center gap-2">
+                  {category && <a href={`/kategori/${category.slug}`} class="rounded-full bg-[#c8e879] px-3 py-1 text-xs font-bold text-village-900">{category.name}</a>}
+                  <span class="rounded-full border border-white/40 bg-black/20 px-3 py-1 text-xs font-medium text-white">Usaha Lokal Dadapayu</span>
+                </div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-white sm:text-4xl">{umkm.name}</h1>
+                <p class="mt-1 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-base">{umkm.shortDescription}</p>
+              </div>
             </div>
 
             <!-- Galeri Foto Tambahan (Hanya muncul jika ada foto galeri) -->
@@ -169,35 +177,10 @@ const jsonLd = {
             )}
           </div>
 
-          <!-- Judul & Kategori -->
-          <div class="space-y-3 pb-6 border-b border-gray-100">
-            <div class="flex flex-wrap items-center gap-2">
-              {category && (
-                <a
-                  href={`/kategori/${category.slug}`}
-                  class="inline-flex items-center rounded-full bg-village-50 px-3 py-1 text-xs font-bold text-village-800 hover:bg-village-100 transition"
-                >
-                  {category.name}
-                </a>
-              )}
-              <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
-                Usaha Aktif Berproduksi
-              </span>
-            </div>
-
-            <h1 class="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-              {umkm.name}
-            </h1>
-
-            <p class="text-base sm:text-lg text-gray-700 leading-relaxed font-medium">
-              {umkm.shortDescription}
-            </p>
-          </div>
-
           <!-- Deskripsi Lengkap Usaha -->
-          <div class="space-y-4">
-            <h2 class="text-lg sm:text-xl font-bold text-gray-900">Tentang Usaha Ini</h2>
+          <div class="profile-story order-3 space-y-4 border-l-4 border-primary-500 py-1 pl-5 sm:pl-7">
+            <span class="text-xs font-bold uppercase tracking-widest text-primary-700">Cerita di Balik Usaha</span>
+            <h2 class="text-2xl font-bold text-village-900 sm:text-3xl">Tentang Usaha Ini</h2>
             <div class="prose max-w-none text-sm sm:text-base text-gray-600 leading-relaxed space-y-3">
               <p>{umkm.description}</p>
             </div>
@@ -205,7 +188,7 @@ const jsonLd = {
 
           <!-- Daftar Produk & Menu (Hanya muncul jika ada produk) -->
           {umkm.products.length > 0 && (
-            <div class="space-y-6 pt-6 border-t border-gray-100">
+            <div class="profile-products order-4 space-y-5 border-t-2 border-village-800 pt-6 sm:space-y-6 sm:pt-7">
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-lg sm:text-xl font-bold text-gray-900">Daftar Produk / Layanan</h2>
@@ -216,11 +199,11 @@ const jsonLd = {
                 </span>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {umkm.products.map((product) => {
                   const productWaLink = createWhatsAppLink(umkm.whatsapp, umkm.name, product.name);
                   return (
-                    <div class="flex flex-col justify-between rounded-2xl border border-gray-200/90 bg-gray-50/50 p-4 hover:border-village-300 hover:bg-white hover:shadow-xs transition">
+                    <div class="flex flex-col justify-between rounded-2xl border border-village-200 bg-white p-4 transition hover:border-primary-300 hover:shadow-md">
                       <div class="space-y-2">
                         {product.image && (
                           <div class="aspect-16/10 w-full overflow-hidden rounded-xl bg-gray-100 mb-3">
@@ -268,13 +251,13 @@ const jsonLd = {
         </div>
 
         <!-- KOLOM KANAN (Sidebar Kontak & Lokasi) -->
-        <div class="lg:col-span-4 space-y-6">
-          <div class="sticky top-20 rounded-3xl border border-gray-200/90 bg-gray-50/70 p-6 shadow-xs space-y-6">
+        <div class="contents lg:col-span-4 lg:block">
+          <div class="profile-contact order-2 rounded-[1.35rem] border border-village-800 bg-village-900 p-4 text-white shadow-lg sm:rounded-[1.75rem] sm:p-6 lg:sticky lg:top-20 lg:space-y-6">
             
             <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-village-700">Kontak Resmi Usaha</span>
-              <h2 class="text-xl font-extrabold text-gray-900 mt-1">Hubungi Langsung</h2>
-              <p class="text-xs text-gray-500 mt-1">
+              <span class="text-xs font-bold uppercase tracking-wider text-[#c8e879]">Kontak Resmi Usaha</span>
+              <h2 class="mt-1 text-xl font-extrabold text-white">Hubungi Langsung</h2>
+              <p class="mt-1 text-xs text-village-200">
                 Terkoneksi langsung ke kontak WhatsApp pemilik usaha.
               </p>
             </div>
@@ -307,18 +290,18 @@ const jsonLd = {
             </a>
 
             <!-- Alamat Lengkap -->
-            <div class="space-y-1 pt-3 border-t border-gray-200">
-              <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Alamat Usaha:</span>
-              <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
+            <div class="space-y-1 border-t border-village-700 pt-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-village-100">Alamat Usaha:</span>
+              <p class="text-xs leading-relaxed text-village-200 sm:text-sm">
                 {umkm.address}
               </p>
             </div>
 
             <!-- Jam Operasional (Hanya ditampilkan jika tersedia) -->
             {umkm.openingHours && (
-              <div class="space-y-1 pt-3 border-t border-gray-200">
-                <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Jam Buka / Layanan:</span>
-                <p class="text-xs sm:text-sm text-gray-600 flex items-center gap-1.5 mt-0.5">
+              <div class="space-y-1 border-t border-village-700 pt-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-village-100">Jam Buka / Layanan:</span>
+                <p class="mt-0.5 flex items-center gap-1.5 text-xs text-village-200 sm:text-sm">
                   <svg class="h-4 w-4 text-village-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -328,7 +311,7 @@ const jsonLd = {
             )}
 
             <!-- Catatan Pengunjung -->
-            <div class="rounded-xl bg-village-100/60 p-3 text-xs text-village-900 leading-relaxed">
+            <div class="rounded-xl bg-village-800 p-3 text-xs leading-relaxed text-village-100">
               💡 <strong>Tips:</strong> Disarankan menghubungi terlebih dahulu via WhatsApp sebelum berkunjung langsung ke lokasi untuk memastikan stok ketersediaan produk.
             </div>
 

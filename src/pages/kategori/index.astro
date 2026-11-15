@@ -1,6 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import Breadcrumb from '../../components/Breadcrumb.astro';
 import CategoryCard from '../../components/CategoryCard.astro';
 import { fetchCategories } from '../../lib/services/categoryService';
 import { fetchPublishedUMKM } from '../../lib/services/umkmService';
@@ -17,49 +16,42 @@ try {
 }
 const totalUMKM = allPublished.length;
 
-const breadcrumbItems = [
-  { name: 'Kategori Usaha' },
-];
-
 ---
 
 <Layout
   title="Kategori Usaha UMKM Desa Dadapayu, Semanu, Gunungkidul"
   description="Daftar sektor dan kategori usaha mikro, kecil, dan menengah di Kalurahan Dadapayu: kuliner tradisional, kerajinan bambu & kayu, hasil tani, dan warung lokal."
 >
-  <div class="bg-gray-50 border-b border-gray-200">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-      <Breadcrumb items={breadcrumbItems} />
-      <div class="pt-2 pb-6">
-        <h1 class="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-          Kategori Usaha Desa Dadapayu
-        </h1>
-        <p class="mt-2 text-sm sm:text-base text-gray-600 max-w-3xl">
-          {catalogError ? 'Kategori usaha sementara tidak tersedia.' : `${totalUMKM} UMKM telah dipublikasikan dalam katalog.`}
-        </p>
+  <header class="bg-[#c8e879] text-village-900">
+    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-12 lg:px-8">
+      <p class="text-[10px] font-bold uppercase tracking-[0.18em] sm:text-xs">Jelajah berdasarkan bidang</p>
+      <div class="mt-2 sm:mt-3 sm:flex sm:items-end sm:justify-between sm:gap-3">
+        <h1 class="max-w-xl text-[2rem] font-extrabold leading-tight tracking-tight sm:text-5xl">Kategori UMKM Dadapayu</h1>
+        <span class="mt-2 inline-flex rounded-full bg-village-900 px-3 py-1.5 text-[10px] font-semibold text-white sm:mt-0 sm:px-4 sm:py-2 sm:text-sm">{categories.length} kategori</span>
       </div>
+      <p class="mt-2 max-w-2xl text-xs leading-relaxed text-village-800 sm:mt-3 sm:text-base">{catalogError ? 'Kategori usaha sementara tidak tersedia.' : `${totalUMKM} UMKM telah dipublikasikan dalam katalog.`}</p>
     </div>
-  </div>
+  </header>
 
-  <section class="py-12 bg-white">
+  <section class="bg-village-50 py-8 sm:py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       {catalogError ? (
         <p class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{catalogError}</p>
       ) : categories.length ? (
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-        {categories.map((cat) => (
-          <div class="flex flex-col justify-between rounded-3xl border border-gray-200/90 bg-gray-50/40 p-6 sm:p-8 hover:border-village-300 hover:shadow-sm transition">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        {categories.map((cat, index) => (
+          <div class:list={["flex flex-col justify-between gap-4 border-b border-village-200 py-5 sm:py-7", index === 0 ? "sm:col-span-2" : ""]}>
             <div class="space-y-4">
               <CategoryCard category={cat} count={allPublished.filter((item) => item.categoryId === cat.id).length} />
               <p class="text-xs sm:text-sm text-gray-600 leading-relaxed pl-1">
                 Kumpulan pelaku usaha warga Dadapayu di bidang {cat.name.toLowerCase()} dengan keaslian bahan baku lokal dan kualitas terpercaya.
               </p>
             </div>
-            <div class="pt-6 mt-4 border-t border-gray-200/60 flex items-center justify-between">
-              <span class="text-xs text-gray-500 font-medium">Sektor Unggulan Desa</span>
+            <div class="flex items-center justify-between border-t border-village-200 pt-4">
+              <span class="text-xs font-semibold uppercase tracking-wide text-village-700">Sektor Unggulan Desa</span>
               <a
                 href={`/kategori/${cat.slug}`}
-                class="inline-flex items-center gap-1.5 rounded-xl bg-village-700 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-village-800 transition"
+                class="inline-flex items-center gap-1.5 rounded-full bg-village-900 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-village-700"
               >
                 <span>Lihat Daftar Usaha</span>
                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

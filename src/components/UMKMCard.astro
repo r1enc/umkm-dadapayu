@@ -15,7 +15,7 @@ const optimizedCover = getOptimizedImageUrl(umkm.coverImage.url, {
 });
 ---
 
-<article class="group flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-200/80 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+<article class="group flex flex-col overflow-hidden rounded-2xl border border-village-100 bg-white shadow-sm transition-all duration-200 hover:border-primary-300 hover:shadow-lg sm:hover:-translate-y-1">
   <!-- Foto Sampul -->
   <a href={`/umkm/${umkm.slug}`} class="relative aspect-4/3 w-full overflow-hidden bg-gray-100 block">
     <img
@@ -32,7 +32,7 @@ const optimizedCover = getOptimizedImageUrl(umkm.coverImage.url, {
   </a>
 
   <!-- Konten Card -->
-  <div class="flex flex-1 flex-col p-5">
+  <div class="flex flex-1 flex-col p-4 sm:p-5">
     <!-- Judul Usaha -->
     <h3 class="text-lg font-bold text-gray-900 group-hover:text-village-700 transition-colors line-clamp-1">
       <a href={`/umkm/${umkm.slug}`} class="focus:outline-none focus:underline">
