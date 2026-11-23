@@ -65,8 +65,8 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     }
 
     const env = locals.runtime?.env as Record<string, string> | undefined;
-    const apiSecret = env?.CLOUDINARY_API_SECRET || import.meta.env.CLOUDINARY_API_SECRET;
-    const apiKey = env?.CLOUDINARY_API_KEY || import.meta.env.CLOUDINARY_API_KEY;
+    const apiSecret = env?.CLOUDINARY_API_SECRET;
+    const apiKey = env?.CLOUDINARY_API_KEY;
     const cloudName = env?.PUBLIC_CLOUDINARY_CLOUD_NAME || import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME || 'desa-dadapayu';
     if (images.length && (!apiSecret || !apiKey)) return Response.json({ success: true, warning: 'Dokumen terhapus; foto tertinggal karena konfigurasi Cloudinary belum lengkap.', orphanedAssets: images }, { status: 207 });
 

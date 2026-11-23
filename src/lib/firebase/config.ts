@@ -19,17 +19,26 @@ export function getFirebaseConfig(): FirebaseConfig | null {
   const messagingSenderId = import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
   const appId = import.meta.env.PUBLIC_FIREBASE_APP_ID;
 
-  if (!apiKey || !projectId) {
+  const missing: string[] = [];
+  if (!apiKey) missing.push('PUBLIC_FIREBASE_API_KEY');
+  if (!authDomain) missing.push('PUBLIC_FIREBASE_AUTH_DOMAIN');
+  if (!projectId) missing.push('PUBLIC_FIREBASE_PROJECT_ID');
+  if (!storageBucket) missing.push('PUBLIC_FIREBASE_STORAGE_BUCKET');
+  if (!messagingSenderId) missing.push('PUBLIC_FIREBASE_MESSAGING_SENDER_ID');
+  if (!appId) missing.push('PUBLIC_FIREBASE_APP_ID');
+
+  if (missing.length) {
+    console.error(`[Firebase] Konfigurasi publik belum lengkap: ${missing.join(', ')}`);
     return null;
   }
 
   return {
     apiKey,
-    authDomain: authDomain || `${projectId}.firebaseapp.com`,
+    authDomain,
     projectId,
-    storageBucket: storageBucket || `${projectId}.appspot.com`,
-    messagingSenderId: messagingSenderId || '',
-    appId: appId || '',
+    storageBucket,
+    messagingSenderId,
+    appId,
   };
 }
 

@@ -33,8 +33,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return Response.json({ error: 'Penghapusan gambar dinonaktifkan untuk data demo lokal.' }, { status: 409 });
   }
 
-  const apiSecret = env.CLOUDINARY_API_SECRET || import.meta.env.CLOUDINARY_API_SECRET;
-  const apiKey = env.CLOUDINARY_API_KEY || import.meta.env.CLOUDINARY_API_KEY;
+  const apiSecret = env.CLOUDINARY_API_SECRET;
+  const apiKey = env.CLOUDINARY_API_KEY;
   const cloudName = env.PUBLIC_CLOUDINARY_CLOUD_NAME || import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME || 'desa-dadapayu';
 
   if (!apiSecret || !apiKey) {
