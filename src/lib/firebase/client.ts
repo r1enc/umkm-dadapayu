@@ -39,7 +39,7 @@ async function withTimeout<T>(promise: Promise<T>, milliseconds: number, error: 
 function getClientFirebaseApp() {
   const config = getFirebaseConfig();
   if (!config) {
-    throw new Error('Konfigurasi Firebase belum diatur. Harap periksa file .env.');
+    throw new Error('Konfigurasi Firebase publik belum lengkap. Periksa PUBLIC_FIREBASE_* pada konfigurasi build.');
   }
 
   const existing = getApps().find((app) => app.name === '[DEFAULT]');

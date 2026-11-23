@@ -5,5 +5,15 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "pages_build_output_dir": "dist"
+  "pages_build_output_dir": "dist",
+  // Public web configuration; private credentials stay in Cloudflare Secrets.
+  "vars": {
+    "PUBLIC_FIREBASE_API_KEY": "AIzaSyAX_XALnp3IwDf_5M7SZUnj2faq2zQDPOc",
+    "PUBLIC_FIREBASE_AUTH_DOMAIN": "umkm-dadapayu.firebaseapp.com",
+    "PUBLIC_FIREBASE_PROJECT_ID": "umkm-dadapayu",
+    "PUBLIC_FIREBASE_STORAGE_BUCKET": "umkm-dadapayu.firebasestorage.app",
+    "PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "1049652494869",
+    "PUBLIC_FIREBASE_APP_ID": "1:1049652494869:web:63cc579a9162beacf9441c",
+    "PUBLIC_CLOUDINARY_CLOUD_NAME": "mnyxr4u8"
+  }
 }

@@ -6,16 +6,16 @@ declare const __UMKM_NETLIFY_PREVIEW__: boolean;
 type Runtime = import('@astrojs/cloudflare').Runtime<Env>;
 
 interface Env {
-  // Public Client Keys
-  PUBLIC_FIREBASE_API_KEY?: string;
-  PUBLIC_FIREBASE_AUTH_DOMAIN?: string;
-  PUBLIC_FIREBASE_PROJECT_ID?: string;
-  PUBLIC_FIREBASE_STORAGE_BUCKET?: string;
-  PUBLIC_FIREBASE_MESSAGING_SENDER_ID?: string;
-  PUBLIC_FIREBASE_APP_ID?: string;
-  PUBLIC_CLOUDINARY_CLOUD_NAME?: string;
+  // Public vars from wrangler.jsonc, also injected into Vite at build time.
+  PUBLIC_FIREBASE_API_KEY: string;
+  PUBLIC_FIREBASE_AUTH_DOMAIN: string;
+  PUBLIC_FIREBASE_PROJECT_ID: string;
+  PUBLIC_FIREBASE_STORAGE_BUCKET: string;
+  PUBLIC_FIREBASE_MESSAGING_SENDER_ID: string;
+  PUBLIC_FIREBASE_APP_ID: string;
+  PUBLIC_CLOUDINARY_CLOUD_NAME: string;
 
-  // Server-Side Secrets
+  // Server-Side Secrets; set in Cloudflare, never in wrangler.jsonc vars.
   CLOUDINARY_API_KEY?: string;
   CLOUDINARY_API_SECRET?: string;
   ADMIN_REGISTRATION_KEY?: string;
