@@ -1,5 +1,6 @@
 # Build and cache outputs
 dist/
+dist-netlify/
 .astro/
 .output/
 .wrangler/
@@ -23,3 +24,6 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local Netlify folder
+.netlify

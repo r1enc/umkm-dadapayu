@@ -1,6 +1,8 @@
 /// <reference path="../.astro/types.d.ts" />
 /// <reference types="astro/client" />
 
+declare const __UMKM_NETLIFY_PREVIEW__: boolean;
+
 type Runtime = import('@astrojs/cloudflare').Runtime<Env>;
 
 interface Env {

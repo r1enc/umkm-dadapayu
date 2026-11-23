@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "build:netlify": "astro build --config astro.config.netlify.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "test:rules": "firebase emulators:exec --only firestore --project demo-umkm-dadapayu-test \"node --test tests/security-rules.test.mjs\"",
     "test:admin-verification": "node tests/admin-verification.test.mjs",
-    "test:firestore-rest": "node --test tests/firestore-rest.test.mjs",
-    "test:demo-store": "node --test tests/demo-store.test.mjs"
+    "test:firestore-rest": "node --test tests/firestore-rest.test.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.13",
@@ -20,7 +20,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
-    "@firebase/rules-unit-testing": "^6.0.0",
+    "@astrojs/netlify": "6.6.4",
+    "@firebase/rules-unit-testing": "4.0.1",
     "@tailwindcss/vite": "^4.0.9",
     "firebase-tools": "^15.35.0",
     "tailwindcss": "^4.0.9",

@@ -15,7 +15,7 @@ Sesuai arahan, sistem ini tidak berasumsi bahwa layanan cloud akan "selalu grati
   - *Build Minutes:* 500 menit build per bulan.
 - **Risiko Biaya & Mitigasi:**
   - Di luar 100.000 request/hari, Cloudflare Workers free plan akan memblokir request baru (HTTP 1015/Rate Limit) dan **TIDAK langsung memotong tagihan kartu kredit** kecuali akun di-upgrade ke Workers Paid ($5/bulan).
-  - *Mitigasi:* Caching di edge (`stale-while-revalidate`) memotong request worker hingga 90%, sehingga 100.000 request/hari setara dengan >500.000 kunjungan halaman per hari. Sangat aman untuk lingkup kalurahan.
+  - *Mitigasi:* Cache API lokal Cloudflare dapat mengurangi pembacaan Firestore untuk halaman publik selama TTL. Cache API ini tetap menjalankan Worker pada setiap request, jadi tidak mengurangi hitungan request Worker.
 
 ### B. Google Cloud / Cloud Firestore
 - **Batas Gratis Resmi (Spark Plan - No Credit Card Required):**
@@ -43,14 +43,12 @@ Sesuai arahan, sistem ini tidak berasumsi bahwa layanan cloud akan "selalu grati
 
 Agar perubahan data yang dilakukan perangkat desa tidak tertahan terlalu lama oleh cache browser maupun edge CDN:
 
-1. **Header Caching Terukur:**
-   ```http
-   Cache-Control: public, max-age=0, s-maxage=60, stale-while-revalidate=120
-   ```
-   - `max-age=0`: Browser pengunjung tidak mengunci cache lokal; pengunjung selalu menanyakan versi terbaru ke edge Cloudflare saat reload.
-   - `s-maxage=60`: Cloudflare Edge Cache menyimpan halaman selama maksimal 60 detik.
-   - `stale-while-revalidate=120`: Jika ada request masuk di antara detik ke-61 hingga 180, Cloudflare langsung menyajikan versi cache yang ada (super cepat), sambil di latar belakang mengambil data terbaru dari Firestore.
-   - **Hasil Nyata:** Perubahan data yang disimpan admin di dashboard akan **tampil ke seluruh pengunjung maksimal dalam 1 hingga 2 menit**, tanpa perlu build ulang website.
+1. **Cache API Cloudflare Workers:**
+   - Middleware hanya menyimpan `GET` untuk homepage, katalog, kategori, detail UMKM terbit, dan sitemap. Request yang membawa cookie/Authorization, seluruh `/admin/*`, dan `/api/*` dilewati.
+   - Cache API menyimpan HTML/XML selama 60 detik dan menambahkan `X-UMKM-Edge-Cache: MISS|HIT|BYPASS` untuk pemeriksaan runtime. Browser tetap menerima `Cache-Control: public, max-age=0, must-revalidate`.
+   - Cache API Cloudflare tidak mendukung `stale-while-revalidate`; karena itu cache ini memakai TTL 60 detik tanpa klaim stale-while-revalidate.
+   - Cache API bersifat lokal per data center. Mutasi admin tidak bisa menghapus cache di semua data center melalui binding Pages saat ini, sehingga halaman publik dapat tertinggal sampai 60 detik pada data center yang memiliki entry.
+   - **Validasi produksi:** status header HIT/MISS pada preview lokal tidak membuktikan cache pada edge deployed. Validasi deployed harus dilakukan setelah deploy dengan request berulang pada hostname Cloudflare dan memeriksa header status.
 2. **Dashboard Admin Tanpa Cache:**
    - Semua halaman `/admin/*` menggunakan header:
      ```http

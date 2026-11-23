@@ -3,218 +3,247 @@ import Layout from '../layouts/Layout.astro';
 import CategoryCard from '../components/CategoryCard.astro';
 import UMKMCard from '../components/UMKMCard.astro';
 import { fetchCategories } from '../lib/services/categoryService';
-import { fetchFeaturedUMKM, fetchPublishedUMKM } from '../lib/services/umkmService';
+import { fetchPublishedUMKM } from '../lib/services/umkmService';
+import { loadHomepageData } from '../lib/services/publicDataCore.mjs';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
+import type { Category, UMKM } from '../types';
 
-const categories = await fetchCategories();
-const featuredUMKM = await fetchFeaturedUMKM(6);
-const allPublished = await fetchPublishedUMKM();
-const totalUMKM = allPublished.length;
-
-// Header cache untuk performa maksimal di Edge
-Astro.response.headers.set(
-  'Cache-Control',
-  'public, max-age=0, s-maxage=60, stale-while-revalidate=120'
-);
+let categories: Category[] = [];
+let featuredUMKM: UMKM[] = [];
+let heroUMKM: UMKM[] = [];
+let allPublished: UMKM[] = [];
+let totalUMKM = 0;
+let catalogError = '';
+try {
+  ({ categories, featuredUMKM, allPublished, totalUMKM } = await loadHomepageData(fetchCategories, fetchPublishedUMKM));
+  heroUMKM = featuredUMKM.filter((umkm) => Boolean(umkm.coverImage?.url));
+} catch (error) {
+  console.error('[Homepage] Firestore catalog request failed:', error);
+  catalogError = 'Katalog belum dapat dimuat dari Firestore. Silakan coba lagi nanti.';
+}
 ---
 
 <Layout
   title="Katalog Digital UMKM Desa Dadapayu, Semanu, Gunungkidul"
-  description="Jelajahi dan dukung ragam produk unggulan, olahan kuliner tradisional, kerajinan tangan, dan hasil bumi asli warga Kalurahan Dadapayu."
+  description="Jelajahi dan dukung ragam produk unggulan warga Kalurahan Dadapayu."
 >
-  <!-- Hero Section -->
-  <section class="relative overflow-hidden bg-gradient-to-b from-village-50 via-white to-gray-50 pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-gray-100">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        <!-- Kolom Teks -->
-        <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
-          <div class="inline-flex items-center gap-2 rounded-full bg-village-100/90 px-3.5 py-1.5 text-xs font-semibold text-village-800">
-            <span class="inline-block h-2 w-2 rounded-full bg-village-600 animate-pulse"></span>
-            Katalog Resmi Potensi Usaha Kalurahan Dadapayu
+  <section class="home-screen home-screen--hero overflow-hidden bg-village-900 text-white">
+    <div class="mx-auto grid max-w-7xl gap-8 px-5 py-9 sm:px-8 sm:py-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-14 lg:px-8 lg:py-20">
+      <div>
+        <p class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#c8e879] sm:text-xs">
+          <span class="h-2 w-2 rounded-full bg-[#c8e879]"></span>
+          Katalog UMKM Kalurahan Dadapayu
+        </p>
+        <h1 class="mt-4 max-w-2xl text-[2.35rem] font-extrabold leading-[1.02] tracking-[-0.055em] text-white sm:mt-5 sm:text-6xl lg:text-[4.5rem]">
+          Temukan Produk dan Usaha <span class="text-[#c8e879]">Lokal Dadapayu.</span>
+        </h1>
+        <p class="mt-4 max-w-xl text-sm leading-relaxed text-village-100 sm:mt-5 sm:text-base">
+          Jelajahi produk unggulan warga dan hubungi pelaku UMKM secara langsung.
+        </p>
+
+        <form action="/katalog" method="GET" class="mt-6 flex max-w-xl items-center gap-1.5 rounded-2xl bg-white p-1.5 text-village-900 shadow-lg sm:mt-8 sm:gap-2 sm:p-2">
+          <label class="flex min-h-11 min-w-0 flex-1 items-center gap-2 px-2 sm:px-3">
+            <svg class="h-5 w-5 shrink-0 text-village-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input type="search" name="q" placeholder="Cari usaha atau produk" aria-label="Cari usaha atau produk" class="w-full min-w-0 bg-transparent py-2 text-sm placeholder:text-gray-400 focus:outline-none" />
+          </label>
+          <button type="submit" class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-[#c8e879] px-3.5 text-xs font-bold text-village-900 transition hover:bg-[#d7f49a] sm:px-5 sm:text-sm">
+            Cari <span class="hidden sm:inline">katalog</span>
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+        </form>
+
+        {catalogError ? (
+          <p class="mt-4 rounded-xl border border-red-300/40 bg-red-950/30 p-3 text-xs text-red-100 sm:text-sm" role="alert">{catalogError}</p>
+        ) : (
+          <div class="mt-5 flex items-center gap-4 text-xs text-village-200 sm:mt-6 sm:gap-6 sm:text-sm">
+            <span><strong class="mr-1 text-lg text-white sm:text-xl">{totalUMKM}</strong> usaha</span>
+            <span class="h-6 w-px bg-village-700"></span>
+            <span><strong class="mr-1 text-lg text-white sm:text-xl">{categories.length}</strong> kategori</span>
           </div>
+        )}
+      </div>
 
-          <h1 class="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl sm:leading-tight">
-            Etalase Digital <span class="text-village-700">UMKM Lokal</span> Desa Dadapayu
-          </h1>
-
-          <p class="text-base sm:text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-            Dari kuliner tiwul legendaris, anyaman bambu, madu klanceng hutan karst, hingga kerajinan kayu jati. Hubungi langsung para pengrajin dan pemilik usaha tanpa perantara.
-          </p>
-
-          <!-- Form Pencarian Cepat -->
-          <div class="pt-2 max-w-xl mx-auto lg:mx-0">
-            <form action="/katalog" method="GET" class="flex flex-col sm:flex-row items-stretch rounded-2xl bg-white p-2 shadow-lg ring-1 ring-black/5 gap-2">
-              <div class="flex items-center flex-1 px-3">
-                <svg class="h-5 w-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  name="q"
-                  placeholder="Cari UMKM atau produk (contoh: Tiwul, Bambu, Madu...)"
-                  class="w-full bg-transparent px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                class="rounded-xl bg-village-700 px-6 py-3 text-sm font-semibold text-white shadow-xs hover:bg-village-800 transition flex items-center justify-center gap-2"
-              >
-                <span>Temukan Produk</span>
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </button>
-            </form>
-            <div class="mt-2.5 flex items-center gap-2 text-xs text-gray-500 justify-center lg:justify-start">
-              <span>Paling sering dicari:</span>
-              <a href="/katalog?q=Tiwul" class="underline hover:text-village-700">Tiwul</a>
-              <span>•</span>
-              <a href="/katalog?q=Bambu" class="underline hover:text-village-700">Anyaman Bambu</a>
-              <span>•</span>
-              <a href="/katalog?q=Madu" class="underline hover:text-village-700">Madu Klanceng</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Kolom Visual Potensi Desa -->
-        <div class="lg:col-span-5 relative">
-          <div class="relative mx-auto max-w-md lg:max-w-none">
-            <div class="overflow-hidden rounded-3xl bg-gray-100 shadow-xl border-4 border-white aspect-4/3 sm:aspect-square">
-              <img
-                src="https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=1000&q=80"
-                alt="Produk olahan pangan tradisional Dadapayu"
-                class="h-full w-full object-cover"
-                loading="eager"
-              />
-            </div>
-            <!-- Floating Badge Ringkasan -->
-            <div class="absolute -bottom-6 -left-4 sm:left-4 rounded-2xl bg-white p-4 shadow-lg border border-gray-100 flex items-center gap-3">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100 text-primary-700">
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <div>
-                <p class="text-xl font-bold text-gray-900">{totalUMKM}+ Unit Usaha</p>
-                <p class="text-xs text-gray-500">Terdaftar & Aktif Berproduksi</p>
-              </div>
-            </div>
-          </div>
+      <div class="relative hidden min-h-64 items-center justify-center overflow-hidden rounded-[2rem] border border-village-700 bg-village-800 p-8 lg:flex">
+        <div aria-hidden="true" class="absolute -right-16 -top-20 h-64 w-64 rounded-full border-[2.5rem] border-village-700"></div>
+        <div aria-hidden="true" class="absolute -bottom-24 -left-12 h-56 w-56 rounded-full bg-[#c8e879]"></div>
+        <div class="relative z-10 max-w-sm text-center">
+          <img src="/images/logo-dadapayu.png" alt="" aria-hidden="true" class="mx-auto h-20 w-20 rounded-full bg-white p-2 shadow-lg" />
+          <p class="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-[#c8e879]">Dari warga, untuk semua</p>
+          <p class="mt-2 text-2xl font-bold leading-tight text-white">Jelajahi karya dan usaha dari Dadapayu.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Kategori Usaha Section -->
-  <section class="py-14 bg-white border-b border-gray-100">
+  <section class:list={['border-b border-village-200 bg-village-100 py-6 sm:py-9', categories.length >= 3 ? 'home-screen' : '']}>
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+      <div class="mb-3 flex items-end justify-between gap-3 sm:mb-5">
         <div>
-          <span class="text-xs font-bold uppercase tracking-wider text-village-700">Jelajahi Berdasarkan Sektor</span>
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">Kategori Usaha Warga</h2>
+          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-village-700 sm:text-xs">Mulai menjelajah</p>
+          <h2 class="mt-1 text-lg font-bold tracking-tight text-village-900 sm:text-2xl">Cari berdasarkan kategori</h2>
         </div>
-        <a href="/kategori" class="inline-flex items-center gap-1 text-sm font-semibold text-village-700 hover:text-village-900 transition">
-          <span>Lihat Semua Kategori</span>
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
+        <a href="/kategori" class="shrink-0 text-xs font-bold text-village-800 underline decoration-primary-400 underline-offset-4 sm:text-sm">Semua kategori</a>
       </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {categories.map((cat) => (
-          <CategoryCard category={cat} />
-        ))}
-      </div>
+      {catalogError ? (
+        <p class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800" role="alert">Kategori belum dapat dimuat.</p>
+      ) : categories.length ? (
+        <div class="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+          {categories.map((category) => (
+            <div class="w-[82%] shrink-0 snap-start sm:w-auto"><CategoryCard category={category} count={allPublished.filter((item) => item.categoryId === category.id).length} /></div>
+          ))}
+        </div>
+      ) : (
+        <div class="rounded-2xl border border-dashed border-village-300 bg-white/60 px-4 py-5 text-sm text-village-700">Belum ada kategori yang dipublikasikan.</div>
+      )}
     </div>
   </section>
 
-  <!-- UMKM Unggulan Section -->
-  <section class="py-16 bg-gray-50">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-        <div>
-          <span class="text-xs font-bold uppercase tracking-wider text-primary-600">Pilihan Produk Lokal</span>
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">UMKM Unggulan Dadapayu</h2>
-          <p class="text-xs sm:text-sm text-gray-600 mt-1">Karya dan olahan pilihan yang menjadi ikon kebanggaan desa.</p>
-        </div>
-        <a
-          href="/katalog"
-          class="inline-flex items-center gap-1.5 rounded-xl bg-village-700 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-village-800 transition"
-        >
-          <span>Buka Semua Katalog ({totalUMKM})</span>
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        </a>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {featuredUMKM.map((umkm) => (
-          <UMKMCard umkm={umkm} />
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <!-- Sekilas Tentang Potensi Kalurahan Dadapayu -->
-  <section class="py-16 bg-white border-t border-gray-100">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-        <div class="lg:col-span-5">
-          <div class="aspect-4/3 rounded-3xl overflow-hidden shadow-lg border border-gray-100 bg-gray-50">
-            <img
-              src="https://images.unsplash.com/photo-1590736969955-71cc94801759?auto=format&fit=crop&w=1000&q=80"
-              alt="Anyaman bambu khas pedesaan Dadapayu"
-              loading="lazy"
-              class="h-full w-full object-cover"
-            />
+  {heroUMKM.length > 0 && (
+    <section class="bg-[#fbfaf5] py-8 sm:py-14" data-scroll-reveal>
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mb-4 flex items-end justify-between gap-3 sm:mb-6">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-700 sm:text-xs">Kenali pelakunya</p>
+            <h2 class="mt-1 text-xl font-bold tracking-tight text-village-900 sm:text-3xl">Cerita usaha warga</h2>
           </div>
+          <span class="text-xs text-gray-500">{heroUMKM.length} foto</span>
         </div>
-        <div class="lg:col-span-7 space-y-4">
-          <span class="text-xs font-bold uppercase tracking-wider text-village-700">Potensi Desa</span>
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Kekayaan Alam & Kearifan Lokal Kalurahan Dadapayu
-          </h2>
-          <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
-            Kalurahan Dadapayu terletak di Kapanewon Semanu, Kabupaten Gunungkidul. Memiliki bentang alam perbukitan karst yang subur untuk tanaman singkong, ketela pohon, pohon jati, serta rumpun bambu tali.
-          </p>
-          <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
-            Masyarakat Dadapayu mengolah kekayaan ini menjadi produk bernilai tinggi: tiwul manis yang legit, gaplek kering pilihan, anyaman besek bambu hantaran, peralatan makan kayu jati, hingga budidaya madu murni lebah klanceng.
-          </p>
 
-          <div class="pt-2 flex flex-wrap gap-4">
-            <a
-              href="/tentang"
-              class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
-            >
-              <span>Pelajari Profil Desa</span>
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
+        <div class="relative aspect-[4/3] overflow-hidden rounded-[1.35rem] bg-village-900 sm:aspect-[2.2/1] sm:rounded-[2rem]" data-umkm-carousel aria-roledescription="carousel" aria-label="Foto UMKM unggulan">
+          {heroUMKM.map((umkm, index) => (
+            <a href={`/umkm/${umkm.slug}`} class:list={['absolute inset-0 block transition-opacity duration-500', index === 0 ? 'opacity-100' : 'pointer-events-none opacity-0']} data-carousel-slide aria-label={`Lihat profil ${umkm.name}`} aria-hidden={index === 0 ? 'false' : 'true'} tabindex={index === 0 ? 0 : -1}>
+              <img src={umkm.coverImage.url.includes('res.cloudinary.com') ? getOptimizedImageUrl(umkm.coverImage.url, { width: 1200, quality: 'auto', format: 'auto', crop: 'limit' }) : umkm.coverImage.url} alt={umkm.coverImage.alt || umkm.name} class="h-full w-full object-cover" loading={index === 0 ? 'eager' : 'lazy'} decoding="async" fetchpriority={index === 0 ? 'high' : 'auto'} />
+              <span class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-4 pt-16 text-base font-bold text-white sm:px-8 sm:pb-8 sm:pt-28 sm:text-2xl">{umkm.name}</span>
             </a>
-          </div>
+          ))}
+          {heroUMKM.length > 1 && (
+            <>
+              <button type="button" data-carousel-previous aria-label="Foto sebelumnya" class="absolute left-3 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-village-900 shadow">‹</button>
+              <button type="button" data-carousel-next aria-label="Foto berikutnya" class="absolute right-3 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-village-900 shadow">›</button>
+              <div class="absolute bottom-4 right-4 z-10 flex gap-2" aria-label="Pilih foto UMKM">
+                {heroUMKM.map((umkm, index) => <button type="button" data-carousel-go={index} aria-label={`Tampilkan foto ${umkm.name}`} aria-current={index === 0 ? 'true' : undefined} class:list={['h-2.5 w-2.5 rounded-full border border-white', index === 0 ? 'bg-white' : 'bg-white/50']} />)}
+              </div>
+            </>
+          )}
         </div>
+      </div>
+    </section>
+  )}
+
+  <section class:list={['bg-white py-9 sm:py-16', featuredUMKM.length >= 3 ? 'home-screen' : '']} data-scroll-reveal>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-5 flex items-end justify-between gap-3 sm:mb-8">
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-700 sm:text-xs">Pilihan dari Dadapayu</p>
+          <h2 class="mt-1 text-xl font-bold tracking-tight text-village-900 sm:text-3xl">Usaha yang bisa kamu temukan</h2>
+        </div>
+        <a href="/katalog" class="shrink-0 rounded-full bg-village-900 px-3 py-2 text-xs font-bold text-white sm:px-4 sm:text-sm">Buka katalog <span aria-hidden="true">→</span></a>
+      </div>
+
+      {catalogError ? (
+        <p class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{catalogError}</p>
+      ) : featuredUMKM.length ? (
+        <div class="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 lg:grid-cols-3">
+          {featuredUMKM.map((umkm) => <div class="w-[86%] shrink-0 snap-start sm:w-auto"><UMKMCard umkm={umkm} categoryName={categories.find((category) => category.id === umkm.categoryId)?.name} /></div>)}
+        </div>
+      ) : (
+        <div class="flex flex-col gap-4 rounded-2xl border border-dashed border-village-300 bg-village-50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+          <div><p class="font-bold text-village-900">Belum ada UMKM yang dipublikasikan</p><p class="mt-1 text-sm text-gray-600">Usaha warga akan tampil di sini setelah dipublikasikan oleh pengelola.</p></div>
+          <a href="/katalog" class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-village-900 px-5 text-sm font-semibold text-white">Lihat katalog</a>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="bg-village-100 py-9 sm:py-16" data-scroll-reveal>
+    <div class="mx-auto grid max-w-7xl items-center gap-7 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
+      <img src="/images/dadapayu-landscape.jpg" alt="Lanskap perbukitan dan suasana perdesaan Dadapayu" loading="lazy" decoding="async" class="aspect-[5/4] w-full rounded-[1.35rem] object-cover sm:rounded-[2rem]" />
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-700 sm:text-xs">Potensi desa</p>
+        <h2 class="mt-2 text-2xl font-bold leading-tight tracking-tight text-village-900 sm:text-4xl">Alam Dadapayu, rumah bagi usaha warga.</h2>
+        <p class="mt-3 text-sm leading-relaxed text-gray-700 sm:mt-4 sm:text-base">
+          Kalurahan Dadapayu berada di Kapanewon Semanu, Kabupaten Gunungkidul. Perbukitan karst dan kearifan lokal menjadi bagian dari kehidupan masyarakatnya.
+        </p>
+        <a href="/tentang" class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-village-900 px-5 text-sm font-semibold text-white">Kenali desa <span aria-hidden="true">→</span></a>
       </div>
     </div>
   </section>
 
-  <!-- CTA Hubungi Desa / Pendaftaran UMKM -->
-  <section class="py-14 bg-village-800 text-white">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center space-y-4">
-      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
-        Memiliki Usaha atau Produk di Desa Dadapayu?
-      </h2>
-      <p class="text-sm sm:text-base text-village-100 max-w-2xl mx-auto leading-relaxed">
-        Pendaftaran katalog ini difasilitasi oleh perangkat kalurahan secara gratis. Hubungi kantor Kalurahan Dadapayu untuk menambahkan data usaha Anda ke portal promosi ini.
-      </p>
-      <div class="pt-2 flex justify-center">
-        <a
-          href="/tentang"
-          class="rounded-xl bg-white px-6 py-3 text-xs sm:text-sm font-bold text-village-900 shadow-md hover:bg-village-50 transition"
-        >
-          Informasi Kontak Pengelola Kalurahan
-        </a>
+  <section class="bg-village-900 py-9 text-white sm:py-14" data-scroll-reveal>
+    <div class="mx-auto max-w-7xl px-5 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-8">
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c8e879] sm:text-xs">Untuk pelaku usaha</p>
+        <h2 class="mt-2 text-2xl font-bold leading-tight sm:text-3xl">Punya usaha di Dadapayu?</h2>
+        <p class="mt-2 max-w-xl text-sm leading-relaxed text-village-100">Hubungi pengelola kalurahan untuk menambahkan usaha ke katalog.</p>
       </div>
+      <a href="/tentang" class="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#c8e879] px-5 text-sm font-bold text-village-900 sm:mt-0">Info pengelola <span class="ml-2" aria-hidden="true">→</span></a>
     </div>
   </section>
 </Layout>
+
+<script>
+  const revealSections = Array.from(document.querySelectorAll<HTMLElement>('[data-scroll-reveal]'));
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (revealSections.length && !prefersReducedMotion && 'IntersectionObserver' in window) {
+    revealSections.forEach((section) => {
+      const bounds = section.getBoundingClientRect();
+      if (bounds.top < window.innerHeight * 0.85 && bounds.bottom > 0) section.classList.add('scroll-reveal-visible');
+    });
+    document.documentElement.classList.add('scroll-reveal-ready');
+    const revealObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('scroll-reveal-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+    revealSections.forEach((section) => {
+      if (!section.classList.contains('scroll-reveal-visible')) revealObserver.observe(section);
+    });
+  }
+
+  const carousel = document.querySelector<HTMLElement>('[data-umkm-carousel]');
+  if (carousel) {
+    const slides = Array.from(carousel.querySelectorAll<HTMLAnchorElement>('[data-carousel-slide]'));
+    const indicators = Array.from(carousel.querySelectorAll<HTMLButtonElement>('[data-carousel-go]'));
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let activeIndex = 0;
+    let timer: number | undefined;
+    const showSlide = (index: number) => {
+      activeIndex = (index + slides.length) % slides.length;
+      slides.forEach((slide, slideIndex) => {
+        const isActive = slideIndex === activeIndex;
+        slide.classList.toggle('opacity-100', isActive);
+        slide.classList.toggle('opacity-0', !isActive);
+        slide.classList.toggle('pointer-events-none', !isActive);
+        slide.setAttribute('aria-hidden', String(!isActive));
+        slide.tabIndex = isActive ? 0 : -1;
+      });
+      indicators.forEach((indicator, indicatorIndex) => {
+        const isActive = indicatorIndex === activeIndex;
+        indicator.classList.toggle('bg-white', isActive);
+        indicator.classList.toggle('bg-white/50', !isActive);
+        if (isActive) indicator.setAttribute('aria-current', 'true');
+        else indicator.removeAttribute('aria-current');
+      });
+    };
+    const stopAutoplay = () => { window.clearInterval(timer); timer = undefined; };
+    const startAutoplay = () => {
+      stopAutoplay();
+      if (slides.length > 1 && !reducedMotion.matches) timer = window.setInterval(() => showSlide(activeIndex + 1), 5000);
+    };
+    carousel.querySelector('[data-carousel-previous]')?.addEventListener('click', () => { showSlide(activeIndex - 1); startAutoplay(); });
+    carousel.querySelector('[data-carousel-next]')?.addEventListener('click', () => { showSlide(activeIndex + 1); startAutoplay(); });
+    indicators.forEach((indicator) => indicator.addEventListener('click', () => { showSlide(Number(indicator.dataset.carouselGo)); startAutoplay(); }));
+    carousel.addEventListener('mouseenter', stopAutoplay);
+    carousel.addEventListener('mouseleave', startAutoplay);
+    carousel.addEventListener('focusin', stopAutoplay);
+    carousel.addEventListener('focusout', (event) => { if (!carousel.contains(event.relatedTarget as Node | null)) startAutoplay(); });
+    reducedMotion.addEventListener('change', startAutoplay);
+    startAutoplay();
+  }
+</script>

@@ -9,6 +9,9 @@ export default defineConfig({
     imageService: 'passthrough',
   }),
   vite: {
+    define: {
+      __UMKM_NETLIFY_PREVIEW__: 'false',
+    },
     plugins: [tailwindcss()],
   },
 });

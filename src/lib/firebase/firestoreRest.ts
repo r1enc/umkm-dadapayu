@@ -54,8 +54,8 @@ export async function firestoreRequest(request: Request, admin: VerifiedAdmin, p
   return executeFirestoreRequest(fetch, { root: root(), path, token, method, body });
 }
 
-export async function firestoreCreate(request: Request, admin: VerifiedAdmin, collection: string, data: Record<string, unknown>) {
-  const id = crypto.randomUUID();
+export async function firestoreCreate(request: Request, admin: VerifiedAdmin, collection: string, data: Record<string, unknown>, documentId: string = crypto.randomUUID()) {
+  const id = documentId;
   await firestoreRequest(request, admin, `${firestoreCollection(collection)}?documentId=${encodeURIComponent(id)}`, 'POST', firestoreFields(data));
   return id;
 }

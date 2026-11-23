@@ -1,11 +1,22 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { fetchAdminUMKM } from '../../lib/services/umkmService';
-import { fetchCategories } from '../../lib/services/categoryService';
+import { fetchAdminCategories } from '../../lib/services/categoryService';
+import type { Category, UMKM } from '../../types';
 
 // SSR data fetch awal
-const allUMKM = await fetchAdminUMKM(Astro.request);
-const categories = await fetchCategories();
+let allUMKM: UMKM[] = [];
+let categories: Category[] = [];
+let dashboardError = '';
+try {
+  [allUMKM, categories] = await Promise.all([
+    fetchAdminUMKM(Astro.request),
+    fetchAdminCategories(Astro.request),
+  ]);
+} catch (error) {
+  console.error('[AdminDashboard] Gagal memuat data Firestore:', error);
+  dashboardError = 'Data dashboard tidak dapat dimuat dari Firestore. Periksa koneksi, lalu coba lagi.';
+}
 
 // Hitung metrik
 const totalPublished = allUMKM.filter((u) => u.status === 'published').length;
@@ -18,7 +29,7 @@ const totalAll = allUMKM.length;
   <div class="space-y-8">
     
     <!-- Header Dashboard & Tombol Aksi Cepat -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
+    <div class="page-intro-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl p-5 sm:p-7">
       <div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
           Ringkasan Katalog UMKM
@@ -31,7 +42,7 @@ const totalAll = allUMKM.length;
       <div class="flex items-center gap-2">
         <a
           href="/admin/umkm/tambah"
-          class="inline-flex items-center gap-2 bg-village-700 hover:bg-village-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition"
+          class="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition"
         >
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -40,6 +51,8 @@ const totalAll = allUMKM.length;
         </a>
       </div>
     </div>
+
+    {dashboardError && <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{dashboardError}</div>}
 
     <!-- 4 Kartu Statistik Sederhana (Tanpa Grafik Rumit) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -57,7 +70,7 @@ const totalAll = allUMKM.length;
       </div>
 
       <!-- Terbit (Tayang di Publik) -->
-      <div class="bg-white rounded-2xl p-5 border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/30 shadow-2xs space-y-2">
+      <div class="rounded-2xl p-5 border border-emerald-200 bg-emerald-50/60 shadow-2xs space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold uppercase tracking-wider text-emerald-800">Sudah Terbit</span>
           <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
@@ -72,7 +85,7 @@ const totalAll = allUMKM.length;
       </div>
 
       <!-- Konsep / Draft -->
-      <div class="bg-white rounded-2xl p-5 border border-amber-200 bg-gradient-to-br from-white to-amber-50/30 shadow-2xs space-y-2">
+      <div class="rounded-2xl p-5 border border-amber-200 bg-amber-50/70 shadow-2xs space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold uppercase tracking-wider text-amber-800">Masih Konsep</span>
           <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
@@ -194,7 +207,7 @@ const totalAll = allUMKM.length;
         </div>
       ) : (
         <div class="p-8 text-center text-gray-500 text-sm">
-          Belum ada UMKM yang terdaftar di sistem. Klik tombol "Tambah UMKM Baru" untuk memulai.
+          {dashboardError ? 'Data UMKM belum dapat ditampilkan.' : 'Belum ada UMKM yang terdaftar. Klik tombol "Tambah UMKM Baru" untuk mengisi katalog.'}
         </div>
       )}
     </div>

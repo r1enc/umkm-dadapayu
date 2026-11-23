@@ -18,11 +18,14 @@ Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
     <title>{title} — Admin Katalog UMKM Dadapayu</title>
     <meta name="robots" content="noindex, nofollow" />
   </head>
-  <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col font-sans antialiased">
+  <body class="bg-village-50 text-gray-800 min-h-screen flex flex-col font-sans antialiased">
     
     <!-- Top Bar Admin -->
     <header class="bg-village-900 text-white shadow-md sticky top-0 z-40">
@@ -30,9 +33,7 @@ Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate
         <!-- Logo & Judul Dashboard -->
         <div class="flex items-center gap-3">
           <a href="/admin/dashboard" class="flex items-center gap-2.5">
-            <div class="h-9 w-9 rounded-lg bg-village-700 flex items-center justify-center font-bold text-white text-sm shadow-xs">
-              DP
-            </div>
+            <img src="/images/logo-dadapayu.png" alt="" aria-hidden="true" class="h-9 w-9 object-contain" />
             <div>
               <span class="block text-sm sm:text-base font-bold tracking-tight leading-tight">
                 Pengelola UMKM Dadapayu

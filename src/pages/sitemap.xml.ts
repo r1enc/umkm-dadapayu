@@ -4,8 +4,17 @@ import { fetchPublishedUMKM } from '../lib/services/umkmService';
 
 export const GET: APIRoute = async ({ url }) => {
   const siteUrl = url.origin;
-  const categories = await fetchCategories();
-  const umkmList = await fetchPublishedUMKM();
+  let categories;
+  let umkmList;
+  try {
+    [categories, umkmList] = await Promise.all([fetchCategories(), fetchPublishedUMKM()]);
+  } catch (error) {
+    console.error('[Sitemap] Firestore catalog request failed:', error);
+    return new Response('Sitemap tidak dapat dimuat karena Firestore tidak tersedia.', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
+  }
 
   const staticRoutes = [
     { loc: `${siteUrl}/`, changefreq: 'daily', priority: '1.0' },
@@ -47,7 +56,7 @@ ${allUrls
     status: 200,
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
     },
   });
 };
